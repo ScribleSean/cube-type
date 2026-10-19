@@ -27,14 +27,13 @@ const ARROW_ROTATIONS = { ArrowLeft: 'y', ArrowRight: "y'", ArrowUp: 'x', ArrowD
 const SHIFT_ARROW_ROTATIONS = { ArrowLeft: "z'", ArrowRight: 'z' };
 
 const DRILL_HINT_MS = 1500; // light up the word if you haven't found it by then
-const WRONG_LETTER_MS = 350;
 
 const settings = () => profiles.active().settings;
 
 // ---------------------------------------------------------------- state
 let mode = 'sprint';
 let cube, phase, reached, splits, t0, over, locked, buffer, stream, solves, combo, samples, turns, prog, drill, finesse;
-let hint = false, hintTimer = null, wrongTimer = null;
+let hint = false, hintTimer = null;
 let chars, errors, lastMove, frame = 0, accent = STAGE_COLOR[0];
 const ctx = makeContext();
 
@@ -245,19 +244,13 @@ function stopDrill() {
 }
 
 // ---------------------------------------------------------------- input
-// A wrong letter: shown in red where you typed it, then cleared.
-function error(ch) {
+// A move that isn't allowed (a wrong swipe in drill, or enter where no double is due).
+function error() {
   errors++;
   combo = 0;
   sound.error();
   if (drill) drill.miss();
-  if (stream) {
-    streamView.draw(stream, buffer, ch);
-    clearTimeout(wrongTimer);
-    wrongTimer = setTimeout(() => stream && streamView.draw(stream, buffer), WRONG_LETTER_MS);
-  } else if (ch) {
-    echo.wrong(ch);
-  }
+  echo.wrong('⏎');
   board.flashWrong();
   drawHud();
 }
@@ -269,43 +262,73 @@ function wordDone(word) {
   sound.word(combo);
 }
 
-// Drill never drops or corrects what you type: wrong letters stay, in red, until you
-// delete them. The move happens when what you typed is exactly its word.
+// Typing never drops or corrects a letter. Everything typed stays; letters that don't fit
+// show in red until you delete them, and a move happens only when the typed letters are
+// exactly its word.
 const MAX_TYPED = 24;
-const goodLength = () => {
-  const want = (drill && board.words[drill.current]) || '';
-  let i = 0;
-  while (i < buffer.length && buffer[i] === want[i]) i++;
-  return i;
-};
-function drillChar(ch) {
+
+// The words the typed letters can be heading for right now.
+function candidates() {
+  if (stream) return [stream.naming ? stream.plan.name : stream.words[stream.i]].filter((w) => w !== REPEAT);
+  if (drill) return [board.words[drill.current]];
+  return Object.values(board.words);
+}
+
+// How many typed letters are right: the longest start of the buffer that some candidate shares.
+function goodLength() {
+  let best = 0;
+  for (const w of candidates()) {
+    let i = 0;
+    while (i < buffer.length && buffer[i] === w[i]) i++;
+    best = Math.max(best, i);
+  }
+  return best;
+}
+
+function typeChar(ch) {
   if (buffer.length >= MAX_TYPED) return;
   const wasClean = goodLength() === buffer.length;
   buffer += ch;
-  const want = board.words[drill.current];
   if (goodLength() === buffer.length) {
     chars++;
     sound.key();
-    if (buffer === want) return fireBoard(drill.current);
+    if (complete()) return;
   } else {
     errors++;
     combo = 0;
     sound.error();
-    if (wasClean) drill.miss();
+    if (wasClean && drill) drill.miss();
     board.flashWrong();
   }
-  drawBoard();
+  redrawTyping();
 }
 
-function boardChar(ch) {
-  const cand = buffer + ch, hits = board.matches(cand, target());
-  if (!hits.length) return error(ch);
-  buffer = cand;
-  chars++;
-  sound.key();
-  const exact = hits.find((m) => board.words[m] === cand);
-  if (exact && hits.length === 1) return fireBoard(exact);
-  drawBoard();
+// Fire the move if the buffer is now a whole word. Returns true when it did.
+function complete() {
+  if (stream) {
+    const want = stream.naming ? stream.plan.name : stream.words[stream.i];
+    if (buffer !== want) return false;
+    if (stream.naming) { stream.naming = false; wordDone(want); refresh(false); return true; }
+    doMove(stream.notation[stream.i++]);
+    wordDone(want);
+    if (stream.i >= stream.words.length) { stream = null; finesse.reset(); afterMove(); } else refresh(false);
+    return true;
+  }
+  if (drill) {
+    if (buffer !== board.words[drill.current]) return false;
+    fireBoard(drill.current);
+    return true;
+  }
+  // Wait while a longer word on screen still starts with these letters (space picks the short one).
+  const hits = board.matches(buffer);
+  const exact = hits.find((m) => board.words[m] === buffer);
+  if (!exact || hits.length > 1) return false;
+  fireBoard(exact);
+  return true;
+}
+
+function redrawTyping() {
+  if (stream) streamView.draw(stream, buffer, goodLength()); else drawBoard();
 }
 
 function fireBoard(move) {
@@ -318,11 +341,12 @@ function fireBoard(move) {
   afterMove();
 }
 
-// Enter: finish an ambiguous word, or with nothing typed, repeat the last turn (a double).
+// Enter: with nothing typed, repeat the last turn (a double), or do the ⏎ step of an
+// algorithm. Space or enter after a whole word picks it when a longer word also matches.
 function submit() {
   if (over || locked) return;
   if (stream) {
-    if (stream.words[stream.i] !== REPEAT) return error('⏎');
+    if (buffer || stream.words[stream.i] !== REPEAT) return buffer ? undefined : error();
     doMove(stream.notation[stream.i++]);
     wordDone('');
     if (stream.i >= stream.words.length) { stream = null; finesse.reset(); afterMove(); } else refresh(false);
@@ -336,21 +360,8 @@ function submit() {
     return afterMove();
   }
   if (!buffer || drill) return;
-  const exact = board.matches(buffer, target()).find((m) => board.words[m] === buffer);
+  const exact = board.matches(buffer).find((m) => board.words[m] === buffer);
   if (exact) fireBoard(exact);
-}
-
-function streamChar(ch) {
-  const want = stream.naming ? stream.plan.name : stream.words[stream.i];
-  if (want === REPEAT || want[buffer.length] !== ch) return error(ch);
-  buffer += ch;
-  chars++;
-  sound.key();
-  if (buffer !== want) return streamView.draw(stream, buffer);
-  if (stream.naming) { stream.naming = false; wordDone(want); return refresh(false); }
-  doMove(stream.notation[stream.i++]);
-  wordDone(want);
-  if (stream.i >= stream.words.length) { stream = null; finesse.reset(); afterMove(); } else refresh(false);
 }
 
 function handleChar(ch) {
@@ -359,7 +370,7 @@ function handleChar(ch) {
   if (ch === '\n') return submit();
   if (!/^[a-z]$/.test(ch)) return;
   if (!t0) t0 = performance.now();
-  if (stream) streamChar(ch); else if (drill) drillChar(ch); else boardChar(ch);
+  typeChar(ch);
   drawHud();
 }
 
@@ -396,7 +407,7 @@ input.addEventListener('focus', resetInput);
 function backspace(wholeWord) {
   if (!buffer || over) return;
   buffer = wholeWord ? '' : buffer.slice(0, -1);
-  stream ? streamView.draw(stream, buffer) : drawBoard();
+  redrawTyping();
 }
 
 document.addEventListener('keydown', (e) => {
@@ -438,7 +449,7 @@ function drawBoard() {
   const s = settings();
   document.body.classList.toggle('focus', s.layout === 'focus' && mode !== 'drill');
   $('#hint').textContent = s.layout === 'focus' && mode !== 'drill' && !buffer && !stream ? 'type a face letter · r l u d f b · m e s · x y z' : '';
-  const good = drill ? goodLength() : buffer.length;
+  const good = goodLength();
   board.draw({ buffer: buffer.slice(0, good), target: target(), highlight: hint });
   echo.draw(buffer, good);
 }
@@ -469,7 +480,7 @@ function refresh(reassign, levelUp) {
   if (!stream && reassign) board.assign({ tier: tier(), keep: lastMove, ctx, levelUp });
   drawPrompt();
   drawBoard();
-  streamView.draw(stream, buffer);
+  streamView.draw(stream, buffer, goodLength());
   drawHud();
 }
 

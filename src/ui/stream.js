@@ -26,7 +26,9 @@ export function wordsForMoves(moves, { calm, ctx }) {
 export function createStream({ root, caseLabel, line, caret }) {
   let caretTimer = null;
   return {
-    draw(stream, buffer, wrong = '') {
+    // `good` = how many typed letters are right. The rest show in red in place, and letters
+    // past the end of the word are added after it, also in red.
+    draw(stream, buffer, good = buffer.length) {
       root.hidden = !stream;
       document.body.classList.toggle('streaming', !!stream);
       if (!stream) return;
@@ -46,16 +48,18 @@ export function createStream({ root, caseLabel, line, caret }) {
         nota.className = 'nota' + (isAlt(it.nota) ? ' alt' : '');
         nota.textContent = it.nota;
         const word = document.createElement('span');
-        [...it.w].forEach((ch, j) => {
+        const cur = it.state === 'cur';
+        const length = cur ? Math.max(it.w.length, buffer.length) : it.w.length;
+        for (let j = 0; j < length; j++) {
           const l = document.createElement('span');
-          const typed = it.state === 'cur' && j < buffer.length;
-          const bad = wrong && it.state === 'cur' && j === buffer.length;
-          l.className = 'l' + (typed ? ' ok' : '') + (bad ? ' bad' : '');
-          l.textContent = bad ? wrong : it.hidden && !typed ? '_' : ch;
+          const typed = cur && j < buffer.length;
+          const bad = typed && j >= good;
+          l.className = 'l' + (typed && !bad ? ' ok' : '') + (bad ? ' bad' : '') + (j >= it.w.length ? ' extra' : '');
+          l.textContent = bad ? buffer[j] : typed ? it.w[j] : it.hidden ? '_' : it.w[j];
           word.appendChild(l);
-          if (it.state === 'cur' && j === buffer.length) caretAt = { el: l, end: false };
-        });
-        if (it.state === 'cur' && buffer.length >= it.w.length) caretAt = { el: word.lastChild, end: true };
+          if (cur && j === buffer.length) caretAt = { el: l, end: false };
+        }
+        if (cur && buffer.length >= length) caretAt = { el: word.lastChild, end: true };
         el.append(nota, word);
         line.appendChild(el);
       }
