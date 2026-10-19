@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>cube type</title>
+<meta name="description" content="Solve a Rubik's cube by typing words. A Monkeytype-style speedcubing game in your browser.">
+<meta name="theme-color" content="#323437">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23323437'/%3E%3Crect x='6' y='6' width='9' height='9' rx='2' fill='%23e2b714'/%3E%3Crect x='17' y='6' width='9' height='9' rx='2' fill='%237fb4d9'/%3E%3Crect x='6' y='17' width='9' height='9' rx='2' fill='%23f2734a'/%3E%3Crect x='17' y='17' width='9' height='9' rx='2' fill='%23d1d0c5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<input id="inp" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="type here">
+
+<header>
+  <div class="logo">cube<span>·</span>type</div>
+  <nav aria-label="game">
+    <button data-mode="sprint">sprint</button>
+    <button data-mode="zen">zen</button>
+    <button data-mode="learn">learn</button>
+    <div class="sep"></div>
+    <button id="btn-view" aria-expanded="false">view</button>
+    <button id="btn-words" title="steady: words change at each new stage. flux: words reshuffle every turn">steady</button>
+    <button id="btn-layout" title="full: every word visible. focus: type a face letter to show its words">full</button>
+    <button id="btn-names" title="type the OLL/PLL case name before its algorithm">name cases</button>
+    <button id="btn-sound">sound on</button>
+    <div class="sep"></div>
+    <button id="btn-stats">stats</button>
+    <button id="btn-profile" aria-expanded="false" title="profiles">player</button>
+  </nav>
+</header>
+
+<main>
+  <div id="hud">
+    <span id="timer">0.00</span>
+    <span id="phase"></span>
+    <span id="combo"></span>
+    <span id="wpm" class="small"></span>
+    <span id="finesse" class="small"></span>
+  </div>
+  <div id="stages"></div>
+  <div id="banner"></div>
+  <div id="scr"></div>
+
+  <div id="arena">
+    <div class="slot" data-cell="tl"></div>
+    <div class="slot" data-cell="t"></div>
+    <div class="slot" data-cell="tr"></div>
+    <div class="slot" data-cell="l"></div>
+    <div id="stage">
+      <div id="mirror"><span id="mirror-label"></span></div>
+      <canvas id="cube" aria-label="cube · swipe to rotate"></canvas>
+      <div id="toasts"></div>
+    </div>
+    <div class="slot" data-cell="r"></div>
+    <div class="slot" data-cell="bl"></div>
+    <div class="slot" data-cell="b"></div>
+    <div class="slot" data-cell="br"></div>
+  </div>
+
+  <div id="extras">
+    <div class="group"><div class="glabel">slices · middle layers</div><div class="gpairs" id="g-slices"></div></div>
+    <div class="group"><div class="glabel">rotate · whole cube · or swipe</div><div class="gpairs" id="g-rot"></div></div>
+  </div>
+  <div id="hint"></div>
+  <div id="stream" hidden><div id="case"></div><div id="line"><div id="caret"></div></div></div>
+</main>
+
+<footer>type a word to turn · same word twice = double · swipe or arrow keys rotate (shift = z) · <kbd>tab</kbd> new scramble · <kbd>esc</kbd> stop</footer>
+
+<div id="viewpanel" class="popover" hidden>
+  <div class="vtabs" id="vtabs"><button data-edit="main">main</button><button data-edit="mirror">mirror</button></div>
+  <div class="vtitle" id="vhint"></div>
+  <div class="vtabs" id="vmirror" hidden><button data-mirror="auto">opposite of main</button><button data-mirror="off">off</button></div>
+  <div class="vgrid" id="vgrid"></div>
+</div>
+
+<div id="profilepanel" class="popover" hidden>
+  <div class="vtitle">profiles · saved in this browser</div>
+  <div id="plist"></div>
+  <form id="pform"><input id="pname" maxlength="20" placeholder="new profile name" aria-label="new profile name"><button>add</button></form>
+</div>
+
+<div id="results" class="overlay" hidden><div class="sheet" id="res"></div></div>
+<div id="stats" class="overlay" hidden><div class="sheet" id="stats-body"></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module" src="src/game.js"></script>
+</body>
+</html>
