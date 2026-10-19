@@ -1,16 +1,18 @@
 // Game controller: modes, typing, stages, finesse and records. Entry point for index.html.
 import * as Cube from './cube.js';
-import { BOARD_MOVES } from './words.js';
 import { makeContext } from './picker.js';
 import { createFinesse } from './finesse.js';
+import { createDrill } from './drill.js';
 import { profiles } from './profiles.js';
 import { createSound } from './sound.js';
 import { createScene } from './scene.js';
 import { createBoard } from './ui/board.js';
-import { createStream, wordsForMoves } from './ui/stream.js';
+import { createStream, wordsForMoves, REPEAT } from './ui/stream.js';
 import { createHud } from './ui/hud.js';
 import { createViewPanel, createProfilePanel } from './ui/panels.js';
 import { createOverlays } from './ui/overlays.js';
+import { createEcho } from './ui/echo.js';
+import { createOnboarding } from './ui/onboarding.js';
 
 const $ = (s) => document.querySelector(s);
 const PHASES = ['cross', 'f2l', 'oll', 'pll', 'done'];
@@ -24,20 +26,23 @@ const MOVE_INFO = {
 const ARROW_ROTATIONS = { ArrowLeft: 'y', ArrowRight: "y'", ArrowUp: 'x', ArrowDown: "x'" };
 const SHIFT_ARROW_ROTATIONS = { ArrowLeft: "z'", ArrowRight: 'z' };
 
+const DRILL_HINT_MS = 1500; // light up the word if you haven't found it by then
+const WRONG_LETTER_MS = 350;
+
 const settings = () => profiles.active().settings;
-const shuffle = (a) => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 // ---------------------------------------------------------------- state
-let mode = profiles.active().played ? 'sprint' : 'first';
-let cube, phase, reached, splits, t0, over, locked, buffer, stream, solves, combo, samples, turns, prog, learn, finesse;
+let mode = 'sprint';
+let cube, phase, reached, splits, t0, over, locked, buffer, stream, solves, combo, samples, turns, prog, drill, finesse;
+let hint = false, hintTimer = null, wrongTimer = null;
 let chars, errors, lastMove, frame = 0, accent = STAGE_COLOR[0];
 const ctx = makeContext();
 
 const elapsed = () => (t0 ? (performance.now() - t0) / 1000 : 0);
 const wpm = () => { const t = elapsed(); return t > 0.5 ? (chars / 5) / (t / 60) : 0; };
 const accuracy = () => (chars ? chars / (chars + errors) : 1);
-const tier = () => (mode === 'zen' || mode === 'learn' ? 0 : Math.min(reached, 2));
-const target = () => (learn ? learn.list[learn.i] || null : null);
+const tier = () => (mode === 'zen' || mode === 'drill' ? 0 : Math.min(reached, 2));
+const target = () => (drill ? drill.current : null);
 
 // ---------------------------------------------------------------- modules
 const sound = createSound(() => settings().sound);
@@ -48,6 +53,7 @@ const scene = createScene({
 });
 const board = createBoard({ arena: $('#arena'), slices: $('#g-slices'), rotations: $('#g-rot') });
 const streamView = createStream({ root: $('#stream'), caseLabel: $('#case'), line: $('#line'), caret: $('#caret') });
+const echo = createEcho($('#echo'));
 const hud = createHud({
   timer: $('#timer'), label: $('#phase'), combo: $('#combo'), wpm: $('#wpm'), finesse: $('#finesse'),
   stages: $('#stages'), toasts: $('#toasts'),
@@ -63,8 +69,13 @@ const viewPanel = createViewPanel({
 });
 const profilePanel = createProfilePanel({
   panel: $('#profilepanel'), button: $('#btn-profile'), list: $('#plist'), form: $('#pform'), input: $('#pname'), profiles,
-  onChange: () => { mode = profiles.active().played ? 'sprint' : 'first'; drawToggles(); applyView(); newGame(); },
+  onChange: () => { drawToggles(); applyView(); newGame(); if (!profiles.active().onboarded) onboarding.start(); },
 });
+const onboarding = createOnboarding({
+  root: $('#onboarding'), profiles,
+  onDone: (m) => { mode = m; profilePanel.redraw(); drawToggles(); newGame(); input.focus(); },
+});
+$('#btn-intro').addEventListener('click', () => { profilePanel.toggle(false); onboarding.start(); });
 const popovers = [viewPanel, profilePanel];
 
 // ---------------------------------------------------------------- view and frame
@@ -89,7 +100,7 @@ function setPosition(worldMoves, slide) {
   prog = Cube.progress(cube);
   stream = null; buffer = ''; lastMove = null;
   finesse.reset();
-  if (mode !== 'learn') maybeStartStream();
+  if (mode !== 'drill') maybeStartStream();
   refresh(true);
 }
 
@@ -100,20 +111,22 @@ function loadScramble(slide) {
 }
 
 function newGame() {
-  splits = {}; t0 = null; over = false; locked = false; learn = null;
+  splits = {}; t0 = null; over = false; locked = false; drill = null; hint = false;
+  clearTimeout(hintTimer);
   chars = 0; errors = 0; combo = 0; solves = 0; samples = []; turns = 0;
   finesse = createFinesse();
   overlays.hideResults();
-  document.body.classList.toggle('learn', mode === 'learn');
+  document.body.classList.toggle('drill', mode === 'drill');
   document.querySelectorAll('nav [data-mode]').forEach((b) => b.classList.toggle('on', b.dataset.mode === mode));
-  if (mode === 'learn') {
-    learn = { round: 1, list: [...BOARD_MOVES], i: 0 };
+  if (mode === 'drill') {
+    drill = createDrill(settings().drillSet);
     $('#scr').textContent = '';
+    $('#banner').textContent = 'type the word for each move · esc to finish';
     setPosition([], true);
+    scheduleHint();
     return;
   }
-  $('#banner').textContent = mode === 'first' ? 'first solve · no timer · new here? try learn for a quick drill'
-    : mode === 'zen' ? 'zen · cubes keep coming · esc when you are done' : '';
+  $('#banner').textContent = mode === 'zen' ? 'zen · cubes keep coming · esc when you are done' : '';
   loadScramble(true);
 }
 
@@ -157,7 +170,7 @@ function afterMove() {
   if (is > reached) {
     for (let i = 0; i < is; i++) if (splits[PHASES[i]] === undefined) {
       splits[PHASES[i]] = now;
-      if (mode !== 'zen' && PHASES[i] !== 'pll') hud.toast(`${PHASES[i]} ${mode === 'first' ? '✓' : now.toFixed(2)}`);
+      if (mode !== 'zen' && PHASES[i] !== 'pll') hud.toast(`${PHASES[i]} ${now.toFixed(2)}`);
     }
     reached = is;
     if (phase !== 'done') sound.stage();
@@ -195,9 +208,8 @@ function solved() {
   over = true;
   refresh(false);
   const run = { mode: 'sprint', time: elapsed(), wpm: wpm(), acc: accuracy(), finesse: finesse.score, faults: finesse.faults, turns, segments: segments(), samples };
-  const first = mode === 'first';
-  if (first) { profiles.markPlayed(); mode = 'sprint'; } else profiles.addRecord(record(run));
-  setTimeout(() => overlays.showResults({ ...run, first }), 450);
+  profiles.addRecord(record(run));
+  setTimeout(() => overlays.showResults(run), 450);
 }
 
 function stopZen() {
@@ -210,43 +222,56 @@ function stopZen() {
 // What gets saved: everything except the per-second samples.
 const record = ({ samples: _, ...rest }) => rest;
 
-function learnNext() {
-  learn.i++;
-  if (learn.i < learn.list.length) return refresh(false);
-  if (learn.round === 1) {
-    learn = { round: 2, list: shuffle(BOARD_MOVES), i: 0 };
-    t0 = null; chars = 0; errors = 0; samples = []; turns = 0; combo = 0;
-    sound.stage();
-    hud.toast('round 2 · notation only, against the clock');
-    return refresh(true);
-  }
-  sound.solve();
+// Drill: next random move, fresh words, and a hint timer for the new move.
+function drillNext() {
+  drill.hit();
+  if (drill.streak % 10 === 0) { sound.stage(); hud.toast(`streak ${drill.streak}`); }
+  hint = false;
+  scheduleHint();
+  refresh(true);
+}
+function scheduleHint() {
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => { hint = true; drawBoard(); }, DRILL_HINT_MS);
+}
+function stopDrill() {
   over = true;
-  const run = { mode: 'learn', time: elapsed(), wpm: wpm(), acc: accuracy(), samples };
-  profiles.addRecord(record(run));
-  refresh(false);
-  setTimeout(() => overlays.showResults(run), 350);
+  clearTimeout(hintTimer);
+  const time = elapsed();
+  const run = { mode: 'drill', time, done: drill.done, rate: time ? drill.done / (time / 60) : 0, streak: drill.bestStreak,
+    misses: drill.misses, wpm: wpm(), acc: accuracy(), samples };
+  if (drill.done) profiles.addRecord(record(run));
+  overlays.showResults(run);
 }
 
 // ---------------------------------------------------------------- input
-function error() {
+// A wrong letter: shown in red where you typed it, then cleared.
+function error(ch) {
   errors++;
   combo = 0;
   sound.error();
-  hud.flash($('#timer'));
+  if (drill) drill.miss();
+  if (stream) {
+    streamView.draw(stream, buffer, ch);
+    clearTimeout(wrongTimer);
+    wrongTimer = setTimeout(() => stream && streamView.draw(stream, buffer), WRONG_LETTER_MS);
+  } else if (ch) {
+    echo.wrong(ch);
+  }
+  board.flashWrong();
   drawHud();
 }
 
 function wordDone(word) {
   combo++;
   buffer = '';
-  ctx.push(word);
+  if (word) ctx.push(word);
   sound.word(combo);
 }
 
 function boardChar(ch) {
   const cand = buffer + ch, hits = board.matches(cand, target());
-  if (!hits.length) return error();
+  if (!hits.length) return error(ch);
   buffer = cand;
   chars++;
   sound.key();
@@ -259,21 +284,37 @@ function fireBoard(move) {
   const word = board.words[move];
   lastMove = move;
   board.fire(move);
-  if (learn) { doMove(move); wordDone(word); return learnNext(); }
+  if (drill) { doMove(move); wordDone(word); return drillNext(); }
   playerTurn(move);
   wordDone(word);
   afterMove();
 }
 
+// Enter: finish an ambiguous word, or with nothing typed, repeat the last turn (a double).
 function submit() {
-  if (stream || !buffer) return;
+  if (over || locked) return;
+  if (stream) {
+    if (stream.words[stream.i] !== REPEAT) return error('⏎');
+    doMove(stream.notation[stream.i++]);
+    wordDone('');
+    if (stream.i >= stream.words.length) { stream = null; finesse.reset(); afterMove(); } else refresh(false);
+    return;
+  }
+  if (!buffer && lastMove && !drill) {
+    if (!t0) t0 = performance.now();
+    board.fire(lastMove);
+    playerTurn(lastMove);
+    wordDone('');
+    return afterMove();
+  }
+  if (!buffer) return;
   const exact = board.matches(buffer, target()).find((m) => board.words[m] === buffer);
   if (exact) fireBoard(exact);
 }
 
 function streamChar(ch) {
   const want = stream.naming ? stream.plan.name : stream.words[stream.i];
-  if (want[buffer.length] !== ch) return error();
+  if (want === REPEAT || want[buffer.length] !== ch) return error(ch);
   buffer += ch;
   chars++;
   sound.key();
@@ -286,7 +327,8 @@ function streamChar(ch) {
 
 function handleChar(ch) {
   if (over || locked) return;
-  if (ch === ' ' || ch === '\n') return submit();
+  if (ch === ' ') return buffer && !stream ? submit() : undefined;
+  if (ch === '\n') return submit();
   if (!/^[a-z]$/.test(ch)) return;
   if (!t0) t0 = performance.now();
   if (stream) streamChar(ch); else boardChar(ch);
@@ -296,14 +338,16 @@ function handleChar(ch) {
 // Whole-cube rotation from a swipe or arrow key.
 function rotate(tok) {
   if (over || locked || overlays.statsOpen) return;
-  if (learn) {
+  if (drill) {
     if (tok !== target()) return error();
+    if (!t0) t0 = performance.now();
     doMove(tok);
-    return learnNext();
+    return drillNext();
   }
   if (!t0) t0 = performance.now();
   stream = null;
   buffer = '';
+  lastMove = tok;
   playerTurn(tok);
   afterMove();
 }
@@ -316,6 +360,7 @@ input.addEventListener('input', () => {
 });
 
 document.addEventListener('keydown', (e) => {
+  if (onboarding.open) return;
   const open = popovers.find((p) => p.open);
   if (e.key === 'Escape') {
     e.preventDefault();
@@ -323,6 +368,7 @@ document.addEventListener('keydown', (e) => {
     if (overlays.statsOpen) return overlays.toggleStats(false);
     if (over) return newGame();
     if (mode === 'zen' && t0) return stopZen();
+    if (mode === 'drill' && t0) return stopDrill();
     return newGame();
   }
   if (open && open.contains(document.activeElement)) return;
@@ -343,45 +389,44 @@ document.addEventListener('pointerup', (e) => {
 
 // ---------------------------------------------------------------- drawing
 function setAccent() {
-  accent = mode === 'zen' || mode === 'learn' ? STAGE_COLOR[0] : STAGE_COLOR[reached];
+  accent = mode === 'zen' || mode === 'drill' ? STAGE_COLOR[0] : STAGE_COLOR[reached];
   document.documentElement.style.setProperty('--main', accent);
   scene.setAccent(accent);
 }
 
 function drawBoard() {
   const s = settings();
-  document.body.classList.toggle('focus', s.layout === 'focus' && mode !== 'learn');
-  $('#hint').textContent = s.layout === 'focus' && mode !== 'learn' && !buffer && !stream ? 'type a face letter · r l u d f b · m e s · x y z' : '';
-  board.draw({ buffer, target: target() });
+  document.body.classList.toggle('focus', s.layout === 'focus' && mode !== 'drill');
+  $('#hint').textContent = s.layout === 'focus' && mode !== 'drill' && !buffer && !stream ? 'type a face letter · r l u d f b · m e s · x y z' : '';
+  board.draw({ buffer, target: target(), highlight: hint });
+  echo.draw(buffer);
 }
 
-function drawLearn() {
-  if (!learn) return;
-  const m = target();
-  if (!m) { $('#banner').innerHTML = '<b>drill done</b>'; return; }
+// The drill prompt: the move in big notation, with what it means underneath.
+function drawPrompt() {
+  const el = $('#prompt');
+  el.hidden = !drill;
+  if (!drill) return;
+  const m = drill.current;
   const dir = m.endsWith("'") ? 'counter-clockwise' : 'clockwise';
-  const face = 'URFDLB'.includes(m[0]) ? ', as if you look straight at it' : '';
-  const step = `${learn.i + 1}/${learn.list.length}`;
-  $('#banner').innerHTML = learn.round === 1
-    ? `round 1 · ${step} · <b>${m}</b> · ${MOVE_INFO[m[0]]} · ${dir}${face}`
-    : `round 2 · ${step} · notation only · <b>${m}</b>`;
+  el.innerHTML = `<b>${m}</b><span>${MOVE_INFO[m[0]]} · ${dir}</span>`;
 }
 
 function drawHud() {
   hud.draw({
     time: elapsed(),
-    showTimer: mode !== 'first' && !(learn && learn.round === 1),
-    label: mode === 'zen' ? `zen · ${solves} solved` : mode !== 'learn' && phase === 'done' ? 'solved' : '',
+    showTimer: true,
+    label: mode === 'zen' ? `zen · ${solves} solved` : drill ? `${drill.done} moves · streak ${drill.streak}` : phase === 'done' ? 'solved' : '',
     combo, wpm: t0 ? wpm() : null,
-    finesse: t0 && mode !== 'learn' && finesse.turns ? finesse.score : null,
-    reached, current: PHASES.indexOf(phase), splits, progress: prog, hideSplits: mode === 'first',
+    finesse: t0 && !drill && finesse.turns ? finesse.score : null,
+    reached, current: PHASES.indexOf(phase), splits, progress: prog,
   });
 }
 
 function refresh(reassign, levelUp) {
   setAccent();
   if (!stream && reassign) board.assign({ tier: tier(), keep: lastMove, ctx, levelUp });
-  drawLearn();
+  drawPrompt();
   drawBoard();
   streamView.draw(stream, buffer);
   drawHud();
@@ -394,13 +439,14 @@ const toggles = {
   sound: { el: $('#btn-sound'), text: (v) => (v ? 'sound on' : 'sound off'), next: (v) => !v },
   words: { el: $('#btn-words'), text: (v) => v, next: (v) => (v === 'steady' ? 'flux' : 'steady'), note: (v) => (v === 'steady' ? 'steady · words change at each new stage' : 'flux · words reshuffle every turn') },
   layout: { el: $('#btn-layout'), text: (v) => v, next: (v) => (v === 'full' ? 'focus' : 'full') },
+  drillSet: { el: $('#btn-drillset'), text: (v) => (v === 'all' ? 'drill: all moves' : 'drill: faces'), next: (v) => (v === 'all' ? 'faces' : 'all'), restart: true },
   names: { el: $('#btn-names'), text: () => 'name cases', next: (v) => !v },
 };
 function drawToggles() {
   for (const [key, t] of Object.entries(toggles)) {
     const v = settings()[key];
     t.el.textContent = t.text(v);
-    t.el.classList.toggle('on', key === 'words' || key === 'layout' || !!v);
+    t.el.classList.toggle('on', ['words', 'layout', 'drillSet'].includes(key) || !!v);
   }
 }
 for (const [key, t] of Object.entries(toggles)) {
@@ -409,6 +455,7 @@ for (const [key, t] of Object.entries(toggles)) {
     drawToggles();
     drawBoard();
     if (t.note) hud.toast(t.note(settings()[key]));
+    if (t.restart && mode === 'drill') newGame();
   });
 }
 document.querySelectorAll('nav [data-mode]').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.mode; newGame(); }));
@@ -429,11 +476,11 @@ drawToggles();
 finesse = createFinesse();
 applyView();
 newGame();
-input.focus();
+if (profiles.active().onboarded) input.focus(); else onboarding.start();
 
 // Hooks for automated checks in the browser console.
 window.cubeType = {
-  check: () => ({ mismatches: scene.mismatches(cube), phase, reached: PHASES[reached], stream: stream && stream.plan.name, words: board.words, learn, frame, finesse: finesse.score }),
+  check: () => ({ mismatches: scene.mismatches(cube), phase, reached: PHASES[reached], stream: stream && stream.plan.name, words: board.words, drill: drill && { current: drill.current, done: drill.done, streak: drill.streak }, frame, finesse: finesse.score, turns }),
   type: (text) => { for (const ch of text) handleChar(ch); },
   rotate,
   load: (moves) => setPosition(Cube.split(moves), false),

@@ -20,12 +20,13 @@
   <nav aria-label="game">
     <button data-mode="sprint">sprint</button>
     <button data-mode="zen">zen</button>
-    <button data-mode="learn">learn</button>
+    <button data-mode="drill">drill</button>
     <div class="sep"></div>
     <button id="btn-view" aria-expanded="false">view</button>
     <button id="btn-words" title="steady: words change at each new stage. flux: words reshuffle every turn">steady</button>
     <button id="btn-layout" title="full: every word visible. focus: type a face letter to show its words">full</button>
     <button id="btn-names" title="type the OLL/PLL case name before its algorithm">name cases</button>
+    <button id="btn-drillset" title="which moves drill asks for">drill: faces</button>
     <button id="btn-sound">sound on</button>
     <div class="sep"></div>
     <button id="btn-stats">stats</button>
@@ -53,6 +54,7 @@
     <div id="stage">
       <div id="mirror"><span id="mirror-label"></span></div>
       <canvas id="cube" aria-label="cube · swipe to rotate"></canvas>
+      <div id="prompt" hidden></div>
       <div id="toasts"></div>
     </div>
     <div class="slot" data-cell="r"></div>
@@ -61,6 +63,7 @@
     <div class="slot" data-cell="br"></div>
   </div>
 
+  <div id="echo" aria-live="polite"></div>
   <div id="extras">
     <div class="group"><div class="glabel">slices · middle layers</div><div class="gpairs" id="g-slices"></div></div>
     <div class="group"><div class="glabel">rotate · whole cube · or swipe</div><div class="gpairs" id="g-rot"></div></div>
@@ -69,7 +72,7 @@
   <div id="stream" hidden><div id="case"></div><div id="line"><div id="caret"></div></div></div>
 </main>
 
-<footer>type a word to turn · same word twice = double · swipe or arrow keys rotate (shift = z) · <kbd>tab</kbd> new scramble · <kbd>esc</kbd> stop</footer>
+<footer>type a word to turn · word then <kbd>enter</kbd> = double · swipe or arrow keys rotate (shift = z) · <kbd>tab</kbd> new scramble · <kbd>esc</kbd> stop</footer>
 
 <div id="viewpanel" class="popover" hidden>
   <div class="vtabs" id="vtabs"><button data-edit="main">main</button><button data-edit="mirror">mirror</button></div>
@@ -82,8 +85,10 @@
   <div class="vtitle">profiles · saved in this browser</div>
   <div id="plist"></div>
   <form id="pform"><input id="pname" maxlength="20" placeholder="new profile name" aria-label="new profile name"><button>add</button></form>
+  <button id="btn-intro" class="plink">replay the intro</button>
 </div>
 
+<div id="onboarding" class="overlay" hidden><div class="sheet ob"></div></div>
 <div id="results" class="overlay" hidden><div class="sheet" id="res"></div></div>
 <div id="stats" class="overlay" hidden><div class="sheet" id="stats-body"></div></div>
 

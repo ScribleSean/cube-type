@@ -1,56 +1,62 @@
+<div align="center">
+
 # cube·type
 
-Solve a Rubik's cube by typing words.
+**Solve a Rubik's cube by typing words.**
 
-Every turn of the cube has a word. Type it and the layer turns. Work through the cross and F2L by
-picking turns yourself, then type your OLL and PLL algorithms as a Monkeytype-style line of words.
-It runs in the browser on desktop and phone, with nothing to install.
+[**▶ Play now**](https://scriblesean.github.io/cube-type/) &nbsp;·&nbsp; free &nbsp;·&nbsp; in your browser &nbsp;·&nbsp; desktop and phone
 
-**Play:** https://scriblesean.github.io/cube-type/
+</div>
 
-## How it plays
+---
 
-- **Cross and F2L.** Words sit around the cube on the side their face is on. Type `rush` to turn R,
-  `recoil` to turn R'. Typing the same word twice makes a double turn (R2).
-- **OLL and PLL.** Once F2L is done, the game reads your last layer and shows the algorithm as a line
-  of words. It uses 2-look OLL and full PLL, all 21 cases.
-- **Rotations.** Swipe the cube or use the arrow keys for x, y and z. Shift (or a two-finger swipe) gives z.
-- **Your point of view.** Pick any of the 8 corner views. Notation follows the view you picked, so R is always
-  the face on your right.
-- **Words that get more intense** as you go, from calm in the cross to intense in the last layer. The colors
-  shift with them.
+Every turn of the cube has a word. Type `rush` and the right face turns. Type `recoil` and it turns
+back. Press enter and it turns again.
+
+You solve the way speedcubers do. You pick your own turns through the cross and F2L. Then the game
+reads your last layer and hands you the OLL and PLL as a line of words to fly through, like a
+Monkeytype test.
+
+## Why it's fun
+
+**It types like Monkeytype.** Short, smooth words, picked by a formula that favors switching hands
+and avoids same-finger stretches. A soft click on every key, a note that climbs with your streak,
+and red the moment you miss a letter.
+
+**It solves like a speedcube.** Real CFOP stages with split times, 2-look OLL and all 21 PLLs,
+WCA notation, and ao5 and ao12 just like a cubing timer.
+
+**It scores like Tetris.** Finesse counts every wasted turn. `R R'` costs you. So does `R R R`
+when one `R'` would do.
+
+**It gets more intense as you go.** Calm words in the cross, sharper ones in F2L, intense ones in
+the last layer. The colors shift with them.
+
+**It's built around your point of view.** Pick any of the 8 corner views of the cube. R is always
+the face on your right. Swipe the cube or use the arrow keys to rotate it.
 
 ## Modes
 
-| Mode | What it is |
+| | |
 | --- | --- |
-| sprint | One timed solve. Results show splits, WPM, accuracy and finesse. |
-| zen | The clock counts up and cubes keep coming. Press `esc` when you are done. |
-| learn | A drill through all 24 moves, then a timed round in notation only. |
+| **drill** | A random move appears and you type its word, on a loop. The fastest way to learn the words. |
+| **sprint** | One timed solve. You get splits, WPM, accuracy and finesse. |
+| **zen** | The clock runs and cubes keep coming. Stop whenever you like. |
 
-## Stats and profiles
+## Make it yours
 
-Profiles live in your browser. Each one keeps its own settings and history. The stats screen shows
-your best time, ao5 and ao12 (WCA-style averages), mean, average split for each stage, best WPM,
-finesse and recent runs.
+- **Profiles.** Each player keeps their own settings and history, saved in the browser.
+- **Stats.** Best, ao5, ao12, mean, average split per stage, best WPM, finesse, and a chart of your last 30 times.
+- **Board.** **full** shows every word. **focus** shows a face's words only after you type its letter.
+- **Words.** **steady** keeps them until you reach a new stage. **flux** reshuffles them every turn.
+- **Cameras.** Set the main view and the small mirror view separately.
 
-## Docs
+## Read more
 
-- [How to play](docs/how-to-play.md): controls, notation, stages and settings
-- [Word picker](docs/word-picker.md): the formula that picks smooth-to-type words, with its weights
-- [Finesse](docs/finesse.md): how wasted turns are counted
-- [Development](docs/development.md): running locally, code layout and tests
+[How to play](docs/how-to-play.md) · [The word formula](docs/word-picker.md) · [Finesse](docs/finesse.md) · [Development](docs/development.md)
 
-## Run locally
+<div align="center">
 
-```bash
-git clone https://github.com/ScribleSean/cube-type.git
-cd cube-type
-python3 -m http.server 5178
-```
+MIT licensed · made with a cube and a keyboard
 
-Then open http://localhost:5178. Tests run with `npm test` (Node 20+ with no dependencies).
-
-## License
-
-MIT
+</div>

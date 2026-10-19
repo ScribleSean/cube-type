@@ -4,12 +4,15 @@ import { pick } from '../picker.js';
 
 const isAlt = (m) => /^[MESxyz]/.test(m);
 
-// One word per move. A double (two identical moves in a row) repeats its word on purpose;
-// otherwise no word appears twice in the same algorithm.
+// The second half of a double: press enter instead of typing the word again.
+export const REPEAT = '⏎';
+
+// One word per move, and no word twice in the same algorithm. The second turn of a
+// double (two identical moves in a row) is REPEAT.
 export function wordsForMoves(moves, { calm, ctx }) {
   const used = new Set(), recent = [...ctx.recent], out = [];
   moves.forEach((tok, i) => {
-    if (i && moves[i - 1] === tok) { out.push(out[i - 1]); return; }
+    if (i && moves[i - 1] === tok && out[i - 1] !== REPEAT) { out.push(REPEAT); return; }
     const src = WORDS[tok] || WORDS[tok.toUpperCase()];
     const pool = calm ? src[0] : [...src[1], ...src[2]];
     const w = pick(pool, { recent, leftShare: ctx.leftShare, exclude: (x) => used.has(x) }) || pick(pool, { recent });
@@ -23,7 +26,7 @@ export function wordsForMoves(moves, { calm, ctx }) {
 export function createStream({ root, caseLabel, line, caret }) {
   let caretTimer = null;
   return {
-    draw(stream, buffer) {
+    draw(stream, buffer, wrong = '') {
       root.hidden = !stream;
       document.body.classList.toggle('streaming', !!stream);
       if (!stream) return;
@@ -38,7 +41,7 @@ export function createStream({ root, caseLabel, line, caret }) {
       let caretAt = null;
       for (const it of items) {
         const el = document.createElement('span');
-        el.className = 'sw' + (it.state === 'done' ? ' done' : '');
+        el.className = 'sw' + (it.state === 'done' ? ' done' : '') + (it.w === REPEAT ? ' repeat' : '');
         const nota = document.createElement('span');
         nota.className = 'nota' + (isAlt(it.nota) ? ' alt' : '');
         nota.textContent = it.nota;
@@ -46,8 +49,9 @@ export function createStream({ root, caseLabel, line, caret }) {
         [...it.w].forEach((ch, j) => {
           const l = document.createElement('span');
           const typed = it.state === 'cur' && j < buffer.length;
-          l.className = 'l' + (typed ? ' ok' : '');
-          l.textContent = it.hidden && !typed ? '_' : ch;
+          const bad = wrong && it.state === 'cur' && j === buffer.length;
+          l.className = 'l' + (typed ? ' ok' : '') + (bad ? ' bad' : '');
+          l.textContent = bad ? wrong : it.hidden && !typed ? '_' : ch;
           word.appendChild(l);
           if (it.state === 'cur' && j === buffer.length) caretAt = { el: l, end: false };
         });

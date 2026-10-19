@@ -18,7 +18,7 @@ npm test
 ```
 
 This runs `node --test` on the logic modules: cube moves, the last-layer planner, the player frame,
-finesse, stats and the word picker. It needs Node 20 or newer.
+finesse, stats, drill and the word picker. It needs Node 20 or newer.
 
 ## Layout
 
@@ -31,6 +31,7 @@ finesse, stats and the word picker. It needs Node 20 or newer.
 | `src/stats.js` | Best, ao5, ao12, means |
 | `src/profiles.js` | Profiles, settings and history in localStorage |
 | `src/storage.js` | localStorage that never throws |
+| `src/drill.js` | Drill move picker |
 | `src/sound.js` | Synthesized sounds |
 | `src/scene.js` | three.js cube, animation, arrows, cameras, swipes |
 | `src/ui/*.js` | Board, word stream, HUD, panels, overlays |

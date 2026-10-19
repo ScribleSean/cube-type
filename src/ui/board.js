@@ -80,16 +80,22 @@ export function createBoard({ arena, slices, rotations }) {
       return BOARD_MOVES.filter((m) => words[m] && words[m].startsWith(prefix) && (!only || m === only));
     },
 
-    draw({ buffer, target }) {
+    draw({ buffer, target, highlight }) {
       for (const m of BOARD_MOVES) {
         const el = chips[m], w = words[m] || '';
         const hit = buffer && w.startsWith(buffer) && (!target || m === target);
         el.classList.toggle('dim', !!buffer && !hit && !target);
         el.classList.toggle('match', !!hit);
-        el.classList.toggle('target', m === target);
+        el.classList.toggle('target', !!highlight && m === target);
         el.querySelector('.typed').textContent = hit ? buffer : '';
         el.querySelector('.rest').textContent = hit ? w.slice(buffer.length) : w;
       }
+    },
+
+    flashWrong() {
+      arena.classList.remove('wrong');
+      void arena.offsetWidth;
+      arena.classList.add('wrong');
     },
 
     fire(move) {

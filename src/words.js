@@ -69,6 +69,6 @@ export const WORDS = {
   "f'": [['fend'], ['fumble', 'flounder'], ['forfeit', 'fray']],
 };
 
-// The 24 board moves. This order is also the order of the learn drill.
+// The 24 moves on the board.
 export const BOARD_MOVES = ["R", "R'", "L", "L'", "U", "U'", "D", "D'", "F", "F'", "B", "B'",
                       "M", "M'", "E", "E'", "S", "S'", "x", "x'", "y", "y'", "z", "z'"];

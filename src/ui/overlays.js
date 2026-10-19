@@ -39,20 +39,20 @@ export function createOverlays({ results, resultsBody, statsEl, statsBody, stats
     showResults(run) {
       const s = summarize(getProfile().records);
       let head = '', body = '';
-      if (run.mode === 'learn') {
-        head = run.time <= s.learn.best ? 'drill done · new best' : 'drill done';
-        body = `<div class="big">${stat('round 2', fmt(run.time))}${stat('wpm', Math.round(run.wpm))}${stat('acc', pct(run.acc))}</div>`;
+      if (run.mode === 'drill') {
+        head = run.done && run.rate >= s.drill.bestRate ? 'drill · new best' : 'drill';
+        body = `<div class="big">${stat('moves / min', Math.round(run.rate))}${stat('moves', run.done)}${stat('acc', pct(run.acc))}</div>
+          <div class="row">${stat('best streak', run.streak, 1)}${stat('misses', run.misses, 1)}${stat('time', fmt(run.time), 1)}${stat('wpm', Math.round(run.wpm), 1)}</div>`;
       } else if (run.mode === 'zen') {
         head = run.solves && run.solves >= s.zen.bestSolves ? 'new best' : '';
         body = `<div class="big">${stat('time', fmt(run.time))}${stat('solves', run.solves)}</div>
           <div class="row">${stat('avg / solve', run.solves ? fmt(run.time / run.solves) : '–', 1)}${stat('wpm', Math.round(run.wpm), 1)}${stat('acc', pct(run.acc), 1)}${stat('finesse', pct(run.finesse), 1)}</div>`;
       } else {
         const seg = run.segments || {};
-        if (run.first) head = 'first solve done · sprint is next';
-        else if (run.time <= s.sprint.best) head = 'new pb';
+        if (run.time <= s.sprint.best) head = 'new pb';
         body = `<div class="big">${stat('time', fmt(run.time))}${stat('wpm', Math.round(run.wpm))}${stat('acc', pct(run.acc))}${stat('finesse', pct(run.finesse))}</div>
           <div class="row">${stat('cross', fmt(seg.cross), 1)}${stat('f2l', fmt(seg.f2l), 1)}${stat('oll', fmt(seg.oll), 1)}${stat('pll', fmt(seg.pll), 1)}${stat('turns', run.turns, 1)}${stat('faults', run.faults, 1)}</div>
-          ${run.first ? '' : `<div class="row">${stat('ao5', fmt(s.sprint.ao5), 1)}${stat('ao12', fmt(s.sprint.ao12), 1)}${stat('best', fmt(s.sprint.best), 1)}</div>`}`;
+          <div class="row">${stat('ao5', fmt(s.sprint.ao5), 1)}${stat('ao12', fmt(s.sprint.ao12), 1)}${stat('best', fmt(s.sprint.best), 1)}</div>`;
       }
       resultsBody.innerHTML = (head ? `<div class="pb">${head}</div>` : '') + body +
         '<canvas class="graph"></canvas><div class="again"><kbd>enter</kbd> or <kbd>tab</kbd> to go again · <kbd>esc</kbd> to close</div>';
@@ -72,7 +72,7 @@ export function createOverlays({ results, resultsBody, statsEl, statsBody, stats
         <div class="big">${stat('best', fmt(sp.best))}${stat('ao5', fmt(sp.ao5))}${stat('ao12', fmt(sp.ao12))}</div>
         <div class="row">${stat('solves', sp.count, 1)}${stat('mean', fmt(sp.mean), 1)}${stat('best wpm', sp.bestWpm == null ? '–' : Math.round(sp.bestWpm), 1)}${stat('finesse', pct(sp.finesse), 1)}</div>
         <div class="row">${stat('avg cross', fmt(sp.splits.cross), 1)}${stat('avg f2l', fmt(sp.splits.f2l), 1)}${stat('avg oll', fmt(sp.splits.oll), 1)}${stat('avg pll', fmt(sp.splits.pll), 1)}</div>
-        <div class="row">${stat('zen best', s.zen.bestSolves ?? '–', 1)}${stat('zen solves', s.zen.totalSolves, 1)}${stat('learn best', fmt(s.learn.best), 1)}</div>
+        <div class="row">${stat('zen best', s.zen.bestSolves ?? '–', 1)}${stat('zen solves', s.zen.totalSolves, 1)}${stat('drill best', s.drill.bestRate == null ? '–' : Math.round(s.drill.bestRate) + '/min', 1)}${stat('drill streak', s.drill.bestStreak ?? '–', 1)}</div>
         <canvas class="graph"></canvas>
         <div class="table-wrap"><table><thead><tr><th>mode</th><th>result</th><th>wpm</th><th>acc</th><th>finesse</th><th>date</th></tr></thead><tbody>${recent || '<tr><td colspan="6">no runs yet · finish a sprint to see stats here</td></tr>'}</tbody></table></div>
         <div class="again"><kbd>esc</kbd> to close</div>`;

@@ -14,7 +14,7 @@ const min = (xs) => (xs.length ? Math.min(...xs) : null);
 export function summarize(records) {
   const sprint = records.filter((r) => r.mode === 'sprint');
   const zen = records.filter((r) => r.mode === 'zen');
-  const learn = records.filter((r) => r.mode === 'learn');
+  const drill = records.filter((r) => r.mode === 'drill');
   const times = sprint.map((r) => r.time);
   const split = (name) => mean(sprint.map((r) => r.segments && r.segments[name]).filter((x) => x != null));
   return {
@@ -30,7 +30,7 @@ export function summarize(records) {
       recentTimes: times.slice(-30),
     },
     zen: { runs: zen.length, bestSolves: max(zen.map((r) => r.solves)), totalSolves: zen.reduce((s, r) => s + r.solves, 0) },
-    learn: { runs: learn.length, best: min(learn.map((r) => r.time)) },
+    drill: { runs: drill.length, bestRate: max(drill.map((r) => r.rate)), bestStreak: max(drill.map((r) => r.streak)) },
     recent: records.slice(-10).reverse(),
   };
 }

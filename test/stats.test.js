@@ -13,7 +13,7 @@ test('summarize splits records by mode', () => {
     { mode: 'sprint', time: 40, wpm: 50, finesse: 0.9, segments: { cross: 5, f2l: 20, oll: 8, pll: 7 } },
     { mode: 'sprint', time: 30, wpm: 60, finesse: 1, segments: { cross: 4, f2l: 15, oll: 6, pll: 5 } },
     { mode: 'zen', time: 300, solves: 4 },
-    { mode: 'learn', time: 22 },
+    { mode: 'drill', time: 60, rate: 42, streak: 17 },
   ];
   const s = summarize(recs);
   assert.equal(s.sprint.count, 2);
@@ -21,6 +21,7 @@ test('summarize splits records by mode', () => {
   assert.equal(s.sprint.bestWpm, 60);
   assert.equal(s.sprint.splits.cross, 4.5);
   assert.equal(s.zen.bestSolves, 4);
-  assert.equal(s.learn.best, 22);
-  assert.equal(s.recent[0].mode, 'learn');
+  assert.equal(s.drill.bestRate, 42);
+  assert.equal(s.drill.bestStreak, 17);
+  assert.equal(s.recent[0].mode, 'drill');
 });

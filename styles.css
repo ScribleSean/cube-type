@@ -134,10 +134,30 @@ body.focus .chip:not(.match) { visibility: hidden; }
 body.focus .slot::before { visibility: hidden; }
 body.streaming .slot, body.streaming #hint { visibility: hidden; }
 body.streaming #extras { display: none; }
-body.learn #stages { visibility: hidden; }
-body.learn #banner { color: var(--text); font-size: .95rem; min-height: 1.5rem; }
-body.learn #banner b { color: var(--main); font-weight: 500; }
-body.learn .chip:not(.target) { opacity: .22; }
+body.drill #stages, body.drill #scr { visibility: hidden; }
+
+/* Typed letters under the cube. A wrong letter shows in red for a moment. */
+#echo {
+  flex: none; height: 2.1rem; margin-top: 6px; display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; letter-spacing: .02em; border-radius: 8px; min-width: 9rem; padding: 0 14px;
+  transition: background .15s;
+}
+.echo-typed { color: var(--main); }
+.echo-bad { color: var(--err); text-decoration: underline 2px; text-underline-offset: 4px; }
+.echo-caret { width: 2px; height: 1.4rem; background: var(--main); margin-left: 2px; animation: blink 1s step-end infinite; }
+#echo.wrong { background: color-mix(in srgb, var(--err) 18%, transparent); }
+#arena.wrong .chip { animation: wrongflash .3s ease-out; }
+@keyframes wrongflash { 0% { box-shadow: inset 0 0 0 1px var(--err); } 100% { box-shadow: none; } }
+body.streaming #echo { display: none; }
+
+/* Drill prompt, over the cube */
+#prompt {
+  position: absolute; z-index: 2; left: 0; right: 0; top: 4px; text-align: center; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+#prompt b { font-size: 3rem; line-height: 1; color: var(--main); font-weight: 700; }
+#prompt span { font-size: .75rem; color: var(--sub); letter-spacing: .06em; }
+body.drill .chip.target { box-shadow: inset 0 0 0 2px var(--main); }
 
 /* Word stream */
 #stream { flex: none; width: 100%; margin-top: 10px; }
@@ -149,6 +169,8 @@ body.learn .chip:not(.target) { opacity: .22; }
 .sw .nota.alt { color: var(--alt); }
 .sw .l { color: var(--sub); }
 .sw .l.ok { color: var(--text); }
+.sw .l.bad { color: var(--err); text-decoration: underline 2px; text-underline-offset: 4px; }
+.sw.repeat .l { color: var(--main); opacity: .8; }
 .sw.done .l { color: var(--text); opacity: .35; }
 #caret { position: absolute; width: 2px; height: 1.6rem; background: var(--main); border-radius: 1px; transition: left .08s ease-out, top .08s ease-out; animation: blink 1s step-end infinite; }
 #caret.typing { animation: none; }
@@ -189,6 +211,37 @@ footer { flex: none; color: var(--sub); font-size: .7rem; padding: 4px var(--gut
   font: inherit; font-size: .85rem; padding: 8px 10px;
 }
 #pform button { background: var(--bg); border: 0; color: var(--main); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+
+.plink { margin-top: 10px; background: none; border: 0; color: var(--sub); font-size: .75rem; cursor: pointer; padding: 4px 0; }
+.plink:hover { color: var(--text); }
+
+/* Onboarding */
+.ob { max-width: 620px; }
+.ob h1 { font-size: 2.6rem; margin: 6px 0 4px; letter-spacing: -.02em; }
+.ob h1 span { color: var(--main); }
+.ob h2 { font-size: 1.4rem; margin: 6px 0 4px; font-weight: 500; text-wrap: balance; }
+.ob-step { color: var(--sub); font-size: .75rem; letter-spacing: .12em; }
+.ob-lead { color: var(--sub); margin: 0 0 16px; }
+.ob-how { margin: 0 0 18px; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
+.ob-how b { color: var(--main); font-weight: 500; }
+.ob code { background: var(--bg-alt); padding: 1px 6px; border-radius: 4px; font-family: inherit; }
+.ob-name { display: flex; flex-direction: column; gap: 6px; color: var(--sub); font-size: .85rem; }
+.ob-name input { background: var(--bg-alt); border: 0; border-radius: 8px; color: var(--text); font: inherit; font-size: 1rem; padding: 10px 12px; max-width: 320px; }
+.ob-choice { margin-bottom: 12px; }
+.ob-ctitle { color: var(--sub); font-size: .75rem; letter-spacing: .1em; margin-bottom: 6px; }
+.ob-opts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.ob-opt, .ob-mode {
+  background: var(--bg-alt); border: 0; border-radius: 8px; color: var(--sub); text-align: left; cursor: pointer;
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; font-size: .78rem; line-height: 1.4;
+}
+.ob-opt b, .ob-mode b { color: var(--text); font-size: .95rem; font-weight: 500; }
+.ob-opt.on { box-shadow: inset 0 0 0 1px var(--main); }
+.ob-opt.on b { color: var(--main); }
+.ob-modes { display: flex; flex-direction: column; gap: 8px; }
+.ob-mode:hover b, .ob-mode:focus-visible b { color: var(--main); }
+.ob-nav { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+.ob-nav button { background: var(--bg-alt); border: 0; border-radius: 8px; color: var(--sub); padding: 9px 16px; cursor: pointer; }
+.ob-nav .ob-primary { color: var(--bg); background: var(--main); font-weight: 500; }
 
 /* Overlays (results, stats) */
 .overlay {
@@ -231,6 +284,10 @@ td { padding: 5px 8px 5px 0; border-top: 1px solid var(--bg-alt); white-space: n
   .pair .chips { gap: 2px; }
   #extras .chip { font-size: .72rem; padding: 12px 2px 4px; }
   #line { font-size: 1.2rem; gap: 2px 10px; }
+  #echo { font-size: 1.2rem; height: 1.8rem; margin-top: 4px; }
+  #prompt b { font-size: 2.2rem; }
+  .ob h1 { font-size: 2rem; }
+  .ob-opts { grid-template-columns: minmax(0, 1fr); }
   #caret { height: 1.2rem; }
   .stat .v { font-size: 2.2rem; }
   .vgrid { gap: 6px; }
