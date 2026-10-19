@@ -35,7 +35,7 @@ export function createOnboarding({ root, profiles, onDone }) {
         <li><b>first letter = face.</b> r words turn R, u words turn U.</li>
         <li><b>word, then enter</b> is a double turn: <code>rush</code> ⏎ is R2.</li>
         <li><b>swipe</b> the cube or use the <b>arrow keys</b> to rotate it (x, y, z).</li>
-        <li>after F2L, your <b>OLL and PLL</b> appear as a line of words to type.</li>
+        <li>after F2L, your <b>OLL and PLL</b> appear as a line of words. Type it like Monkeytype, with <b>space</b> between words.</li>
       </ul>
       <label class="ob-name">what should we call you?
         <input id="ob-name" maxlength="20" value="${escapeHtml(p.name)}" autocomplete="off">

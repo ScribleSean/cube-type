@@ -44,8 +44,10 @@ The bar at the top tracks CFOP: cross (edges 0/4), F2L (pairs 0/4), OLL, PLL. A 
 its split time.
 
 When F2L is done, the board is replaced by a line of words for your last-layer algorithm. The game
-picks the algorithm and the U turns before and after it. Type the line to apply it. The second half of
-a double shows as ⏎: press enter. Wrong letters show in red in place of the right ones until you delete them.
+picks the algorithm and the U turns before and after it. Type the line like a Monkeytype test: type a
+word, press space, type the next. Space moves on even if the word has a typo: the move still happens,
+the typo stays in red, and it counts against accuracy. The last word finishes by itself. The second
+half of a double shows as ⏎: press enter or space.
 2-look OLL needs two lines and PLL needs one.
 
 If you break a finished stage on purpose, for example opening the cross to insert a pair, the stage
@@ -87,5 +89,5 @@ Settings are saved to the current profile.
 | tab | New scramble |
 | esc | Stop zen or drill and show results, or start over in sprint. Also closes panels. |
 | enter | Repeat the last turn (a double). Restarts from the results screen. |
-| space | Choose a word that is also the start of a longer one. |
+| space | Next word in an algorithm line. On the board, picks a word that is also the start of a longer one. |
 | backspace | Remove the last typed letter (with ctrl, alt or cmd: the whole word) |

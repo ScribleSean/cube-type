@@ -137,6 +137,7 @@ function maybeStartStream() {
   stream = {
     plan, i: 0, notation: plan.moves,
     words: wordsForMoves(plan.moves, { calm: mode === 'zen', ctx }),
+    typed: [], // what the player typed for each finished word, shown as typed
     naming: settings().names && plan.name !== 'auf',
   };
 }
@@ -305,13 +306,10 @@ function typeChar(ch) {
 
 // Fire the move if the buffer is now a whole word. Returns true when it did.
 function complete() {
+  // Algorithm lines work like Monkeytype: space moves on. Only the last word finishes by itself.
   if (stream) {
-    const want = stream.naming ? stream.plan.name : stream.words[stream.i];
-    if (buffer !== want) return false;
-    if (stream.naming) { stream.naming = false; wordDone(want); refresh(false); return true; }
-    doMove(stream.notation[stream.i++]);
-    wordDone(want);
-    if (stream.i >= stream.words.length) { stream = null; finesse.reset(); afterMove(); } else refresh(false);
+    if (stream.naming || stream.i !== stream.words.length - 1 || buffer !== stream.words[stream.i]) return false;
+    nextStreamWord();
     return true;
   }
   if (drill) {
@@ -325,6 +323,32 @@ function complete() {
   if (!exact || hits.length > 1) return false;
   fireBoard(exact);
   return true;
+}
+
+// Move to the next word of the algorithm line. The move happens even if the word had
+// typos (they stay on screen in red); missing letters count against accuracy.
+function nextStreamWord() {
+  const want = stream.words[stream.i];
+  const clean = want === REPEAT ? !buffer : buffer === want;
+  if (!clean) {
+    combo = 0;
+    errors += want === REPEAT ? 1 : Math.max(0, want.length - goodLength());
+    sound.error();
+  }
+  stream.typed[stream.i] = buffer;
+  doMove(stream.notation[stream.i++]);
+  if (clean) wordDone(want === REPEAT ? '' : want); else buffer = '';
+  if (stream.i >= stream.words.length) { stream = null; finesse.reset(); afterMove(); } else refresh(false);
+}
+
+// Space in an algorithm line: move on (or answer the case name).
+function streamSpace() {
+  if (stream.naming) {
+    if (buffer === stream.plan.name) { stream.naming = false; wordDone(buffer); refresh(false); } else if (buffer) error();
+    return;
+  }
+  if (!buffer && stream.words[stream.i] !== REPEAT) return; // like Monkeytype, space at the start of a word does nothing
+  nextStreamWord();
 }
 
 function redrawTyping() {
@@ -346,11 +370,8 @@ function fireBoard(move) {
 function submit() {
   if (over || locked) return;
   if (stream) {
-    if (buffer || stream.words[stream.i] !== REPEAT) return buffer ? undefined : error();
-    doMove(stream.notation[stream.i++]);
-    wordDone('');
-    if (stream.i >= stream.words.length) { stream = null; finesse.reset(); afterMove(); } else refresh(false);
-    return;
+    if (stream.words[stream.i] === REPEAT && !buffer) return nextStreamWord();
+    return error();
   }
   if (!buffer && lastMove && !drill) {
     if (!t0) t0 = performance.now();
@@ -366,7 +387,7 @@ function submit() {
 
 function handleChar(ch) {
   if (over || locked) return;
-  if (ch === ' ') return buffer && !stream ? submit() : undefined;
+  if (ch === ' ') return stream ? streamSpace() : buffer ? submit() : undefined;
   if (ch === '\n') return submit();
   if (!/^[a-z]$/.test(ch)) return;
   if (!t0) t0 = performance.now();

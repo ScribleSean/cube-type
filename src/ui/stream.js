@@ -43,19 +43,25 @@ export function createStream({ root, caseLabel, line, caret }) {
       let caretAt = null;
       for (const it of items) {
         const el = document.createElement('span');
-        el.className = 'sw' + (it.state === 'done' ? ' done' : '') + (it.w === REPEAT ? ' repeat' : '');
+        const typedHere = it.state === 'done' ? stream.typed[items.indexOf(it)] : undefined;
+        const missed = typedHere !== undefined && typedHere !== (it.w === REPEAT ? '' : it.w);
+        el.className = 'sw' + (it.state === 'done' ? ' done' : '') + (it.w === REPEAT ? ' repeat' : '') + (missed ? ' missed' : '');
         const nota = document.createElement('span');
         nota.className = 'nota' + (isAlt(it.nota) ? ' alt' : '');
         nota.textContent = it.nota;
         const word = document.createElement('span');
         const cur = it.state === 'cur';
-        const length = cur ? Math.max(it.w.length, buffer.length) : it.w.length;
+        // Finished words with typos keep showing what was typed.
+        const shown = cur ? buffer : missed && it.w !== REPEAT ? typedHere : null;
+        const okUpTo = cur ? good : shown ? [...shown].findIndex((c, k) => c !== it.w[k]) : 0;
+        const goodLen = okUpTo < 0 ? (shown || '').length : okUpTo;
+        const length = shown ? Math.max(it.w.length, shown.length) : it.w.length;
         for (let j = 0; j < length; j++) {
           const l = document.createElement('span');
-          const typed = cur && j < buffer.length;
-          const bad = typed && j >= good;
+          const typed = shown !== null && j < shown.length;
+          const bad = typed && j >= goodLen;
           l.className = 'l' + (typed && !bad ? ' ok' : '') + (bad ? ' bad' : '') + (j >= it.w.length ? ' extra' : '');
-          l.textContent = bad ? buffer[j] : typed ? it.w[j] : it.hidden ? '_' : it.w[j];
+          l.textContent = bad ? shown[j] : typed ? it.w[j] : it.hidden ? '_' : it.w[j];
           word.appendChild(l);
           if (cur && j === buffer.length) caretAt = { el: l, end: false };
         }
