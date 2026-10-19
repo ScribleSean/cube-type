@@ -1,19 +1,24 @@
-// The typed-letters line under the cube. Shows what you have typed so far, and a wrong
-// letter in red for a moment so mistakes are easy to see.
+// The typed-letters line under the cube. Letters that match show in the accent color and
+// letters that don't show in red. A rejected letter also flashes red for a moment.
 export function createEcho(el) {
   let wrongTimer = null;
-  const typed = document.createElement('span'), bad = document.createElement('span'), caret = document.createElement('span');
-  typed.className = 'echo-typed';
+  const good = document.createElement('span'), bad = document.createElement('span'), flash = document.createElement('span'), caret = document.createElement('span');
+  good.className = 'echo-typed';
   bad.className = 'echo-bad';
+  flash.className = 'echo-bad';
   caret.className = 'echo-caret';
-  el.append(typed, bad, caret);
+  el.append(good, bad, flash, caret);
   return {
-    draw(buffer) { typed.textContent = buffer; },
+    // `goodLength` letters of `buffer` are right; the rest stay red until deleted.
+    draw(buffer, goodLength = buffer.length) {
+      good.textContent = buffer.slice(0, goodLength);
+      bad.textContent = buffer.slice(goodLength);
+    },
     wrong(ch) {
-      bad.textContent = ch;
+      flash.textContent = ch;
       el.classList.remove('wrong'); void el.offsetWidth; el.classList.add('wrong');
       clearTimeout(wrongTimer);
-      wrongTimer = setTimeout(() => { bad.textContent = ''; el.classList.remove('wrong'); }, 420);
+      wrongTimer = setTimeout(() => { flash.textContent = ''; el.classList.remove('wrong'); }, 420);
     },
   };
 }

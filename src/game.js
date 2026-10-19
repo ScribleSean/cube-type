@@ -269,6 +269,34 @@ function wordDone(word) {
   sound.word(combo);
 }
 
+// Drill never drops or corrects what you type: wrong letters stay, in red, until you
+// delete them. The move happens when what you typed is exactly its word.
+const MAX_TYPED = 24;
+const goodLength = () => {
+  const want = (drill && board.words[drill.current]) || '';
+  let i = 0;
+  while (i < buffer.length && buffer[i] === want[i]) i++;
+  return i;
+};
+function drillChar(ch) {
+  if (buffer.length >= MAX_TYPED) return;
+  const wasClean = goodLength() === buffer.length;
+  buffer += ch;
+  const want = board.words[drill.current];
+  if (goodLength() === buffer.length) {
+    chars++;
+    sound.key();
+    if (buffer === want) return fireBoard(drill.current);
+  } else {
+    errors++;
+    combo = 0;
+    sound.error();
+    if (wasClean) drill.miss();
+    board.flashWrong();
+  }
+  drawBoard();
+}
+
 function boardChar(ch) {
   const cand = buffer + ch, hits = board.matches(cand, target());
   if (!hits.length) return error(ch);
@@ -307,7 +335,7 @@ function submit() {
     wordDone('');
     return afterMove();
   }
-  if (!buffer) return;
+  if (!buffer || drill) return;
   const exact = board.matches(buffer, target()).find((m) => board.words[m] === buffer);
   if (exact) fireBoard(exact);
 }
@@ -331,7 +359,7 @@ function handleChar(ch) {
   if (ch === '\n') return submit();
   if (!/^[a-z]$/.test(ch)) return;
   if (!t0) t0 = performance.now();
-  if (stream) streamChar(ch); else boardChar(ch);
+  if (stream) streamChar(ch); else if (drill) drillChar(ch); else boardChar(ch);
   drawHud();
 }
 
@@ -352,12 +380,24 @@ function rotate(tok) {
   afterMove();
 }
 
+// The hidden input always holds one placeholder space. Phone keyboards only report
+// Backspace reliably when there is something to delete, so deleting the placeholder
+// counts as Backspace.
 const input = $('#inp');
+const PLACEHOLDER = ' ';
+const resetInput = () => { input.value = PLACEHOLDER; input.setSelectionRange(1, 1); };
 input.addEventListener('input', () => {
   const v = input.value;
-  input.value = '';
-  for (const ch of v) handleChar(ch.toLowerCase());
+  resetInput();
+  if (!v.startsWith(PLACEHOLDER)) return backspace(false);
+  for (const ch of v.slice(1)) handleChar(ch.toLowerCase());
 });
+input.addEventListener('focus', resetInput);
+function backspace(wholeWord) {
+  if (!buffer || over) return;
+  buffer = wholeWord ? '' : buffer.slice(0, -1);
+  stream ? streamView.draw(stream, buffer) : drawBoard();
+}
 
 document.addEventListener('keydown', (e) => {
   if (onboarding.open) return;
@@ -376,9 +416,9 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && document.activeElement === input) { e.preventDefault(); return over ? newGame() : submit(); }
   const rot = (e.shiftKey ? SHIFT_ARROW_ROTATIONS : ARROW_ROTATIONS)[e.key];
   if (rot) { e.preventDefault(); return rotate(rot); }
-  if (e.key === 'Backspace' && buffer && !over) {
-    buffer = buffer.slice(0, -1);
-    stream ? streamView.draw(stream, buffer) : drawBoard();
+  if (e.key === 'Backspace') {
+    e.preventDefault(); // handled here, so the placeholder stays put
+    backspace(e.ctrlKey || e.altKey || e.metaKey);
   }
   if (document.activeElement !== input) input.focus();
 });
@@ -398,8 +438,9 @@ function drawBoard() {
   const s = settings();
   document.body.classList.toggle('focus', s.layout === 'focus' && mode !== 'drill');
   $('#hint').textContent = s.layout === 'focus' && mode !== 'drill' && !buffer && !stream ? 'type a face letter · r l u d f b · m e s · x y z' : '';
-  board.draw({ buffer, target: target(), highlight: hint });
-  echo.draw(buffer);
+  const good = drill ? goodLength() : buffer.length;
+  board.draw({ buffer: buffer.slice(0, good), target: target(), highlight: hint });
+  echo.draw(buffer, good);
 }
 
 // The drill prompt: the move in big notation, with what it means underneath.

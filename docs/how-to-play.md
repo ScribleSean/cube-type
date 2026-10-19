@@ -52,7 +52,8 @@ shows `!` until it is restored. Nothing else changes.
 ## Drill
 
 Drill shows one move at a time in big notation, like `R'`, with what it means underneath. Type that
-move's word on the board and the next move appears. The word lights up only if you take longer than
+move's word on the board and the next move appears. Drill never drops or fixes what you type: wrong
+letters stay in red until you delete them (backspace, or ctrl/alt/cmd+backspace for the whole word). The word lights up only if you take longer than
 1.5 seconds to find it. Drill never asks for the same move twice in a row, or for the move that
 undoes the last one. Press esc to see moves per minute, accuracy and your best streak.
 
