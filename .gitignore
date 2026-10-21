@@ -1,9 +1,5 @@
 .DS_Store
 .claude/
 node_modules/
-# Old single-file build, replaced by src/
-js/
-dist/
-build.py
 # Design exploration (not shipped)
 design/
