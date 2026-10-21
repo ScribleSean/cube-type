@@ -12,12 +12,13 @@ export function createOverlays({ results, resultsBody, statsEl, statsBody, stats
     canvas.width = w * dpr; canvas.height = h * dpr;
     const g = canvas.getContext('2d');
     g.scale(dpr, dpr);
-    g.font = '11px Roboto Mono, monospace';
-    g.fillStyle = '#646669';
+    const css = getComputedStyle(document.documentElement), token = (n) => css.getPropertyValue(n).trim();
+    g.font = `11px ${token('--font-words')}`;
+    g.fillStyle = token('--sub');
     if (points.length < 2) { g.fillText('not enough data yet', 0, h / 2); return; }
     const hi = Math.max(...points) * 1.1, lo = invert ? Math.min(...points) * 0.9 : 0;
     const y = (v) => h - 18 - ((v - lo) / (hi - lo || 1)) * (h - 28);
-    g.strokeStyle = '#2c2e31'; g.lineWidth = 1;
+    g.strokeStyle = token('--bg-alt'); g.lineWidth = 1;
     for (let i = 0; i <= 3; i++) {
       const v = lo + ((hi - lo) * i) / 3;
       g.beginPath(); g.moveTo(34, y(v)); g.lineTo(w, y(v)); g.stroke();
@@ -27,7 +28,7 @@ export function createOverlays({ results, resultsBody, statsEl, statsBody, stats
     g.beginPath();
     points.forEach((v, i) => { const x = 34 + (i / (points.length - 1)) * (w - 38); i ? g.lineTo(x, y(v)) : g.moveTo(x, y(v)); });
     g.stroke();
-    g.fillStyle = '#646669';
+    g.fillStyle = token('--sub');
     g.fillText(label, 34, h - 2);
   }
 

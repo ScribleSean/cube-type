@@ -16,8 +16,9 @@ import { createOnboarding } from './ui/onboarding.js';
 
 const $ = (s) => document.querySelector(s);
 const PHASES = ['cross', 'f2l', 'oll', 'pll', 'done'];
-// Accent color climbs with the stage: calm blue, building yellow, intense orange-red.
-const STAGE_COLOR = ['#7fb4d9', '#e2b714', '#f2734a', '#f2734a', '#f2734a'];
+// Accent color climbs with the stage (calm, building, intense). The theme defines the three colors.
+const THEMES = ['classic', 'soft', 'frost', 'daylight'];
+const stageColor = (i) => getComputedStyle(document.documentElement).getPropertyValue(`--stage-${Math.min(i, 2)}`).trim();
 const MOVE_INFO = {
   R: 'right face', L: 'left face', U: 'top face', D: 'bottom face', F: 'front face', B: 'back face',
   M: 'middle slice between L and R, turns like L', E: 'middle slice between U and D, turns like D',
@@ -34,7 +35,7 @@ const settings = () => profiles.active().settings;
 let mode = 'sprint';
 let cube, phase, reached, splits, t0, over, locked, buffer, stream, solves, combo, samples, turns, prog, drill, finesse;
 let hint = false, hintTimer = null;
-let chars, errors, lastMove, frame = 0, accent = STAGE_COLOR[0];
+let chars, errors, lastMove, frame = 0, accent = '';
 const ctx = makeContext();
 
 const elapsed = () => (t0 ? (performance.now() - t0) / 1000 : 0);
@@ -68,11 +69,11 @@ const viewPanel = createViewPanel({
 });
 const profilePanel = createProfilePanel({
   panel: $('#profilepanel'), button: $('#btn-profile'), list: $('#plist'), form: $('#pform'), input: $('#pname'), profiles,
-  onChange: () => { drawToggles(); applyView(); newGame(); if (!profiles.active().onboarded) onboarding.start(); },
+  onChange: () => { applyTheme(); drawToggles(); applyView(); newGame(); if (!profiles.active().onboarded) onboarding.start(); },
 });
 const onboarding = createOnboarding({
   root: $('#onboarding'), profiles,
-  onDone: (m) => { mode = m; profilePanel.redraw(); drawToggles(); newGame(); input.focus(); },
+  onDone: (m) => { mode = m; profilePanel.redraw(); applyTheme(); drawToggles(); newGame(); input.focus(); },
 });
 $('#btn-intro').addEventListener('click', () => { profilePanel.toggle(false); onboarding.start(); });
 const popovers = [viewPanel, profilePanel];
@@ -464,7 +465,7 @@ document.addEventListener('pointerup', (e) => {
 
 // ---------------------------------------------------------------- drawing
 function setAccent() {
-  accent = mode === 'zen' || mode === 'drill' ? STAGE_COLOR[0] : STAGE_COLOR[reached];
+  accent = stageColor(mode === 'zen' || mode === 'drill' ? 0 : reached);
   document.documentElement.style.setProperty('--main', accent);
   scene.setAccent(accent);
 }
@@ -515,14 +516,20 @@ const toggles = {
   sound: { el: $('#btn-sound'), text: (v) => (v ? 'sound on' : 'sound off'), next: (v) => !v },
   words: { el: $('#btn-words'), text: (v) => v, next: (v) => (v === 'steady' ? 'flux' : 'steady'), note: (v) => (v === 'steady' ? 'steady · words change at each new stage' : 'flux · words reshuffle every turn') },
   layout: { el: $('#btn-layout'), text: (v) => v, next: (v) => (v === 'full' ? 'focus' : 'full') },
+  theme: { el: $('#btn-theme'), text: (v) => `theme: ${v}`, next: (v) => THEMES[(THEMES.indexOf(v) + 1) % THEMES.length], apply: true },
   drillSet: { el: $('#btn-drillset'), text: (v) => (v === 'all' ? 'drill: all moves' : 'drill: faces'), next: (v) => (v === 'all' ? 'faces' : 'all'), restart: true },
   names: { el: $('#btn-names'), text: () => 'name cases', next: (v) => !v },
 };
+function applyTheme() {
+  document.documentElement.dataset.theme = settings().theme;
+  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+}
+
 function drawToggles() {
   for (const [key, t] of Object.entries(toggles)) {
     const v = settings()[key];
     t.el.textContent = t.text(v);
-    t.el.classList.toggle('on', ['words', 'layout', 'drillSet'].includes(key) || !!v);
+    t.el.classList.toggle('on', ['words', 'layout', 'drillSet', 'theme'].includes(key) || !!v);
   }
 }
 for (const [key, t] of Object.entries(toggles)) {
@@ -532,6 +539,7 @@ for (const [key, t] of Object.entries(toggles)) {
     drawBoard();
     if (t.note) hud.toast(t.note(settings()[key]));
     if (t.restart && mode === 'drill') newGame();
+    if (t.apply) { applyTheme(); refresh(false); }
   });
 }
 document.querySelectorAll('nav [data-mode]').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.mode; newGame(); }));
@@ -548,6 +556,7 @@ function fitViewport() {
 fitViewport();
 
 // ---------------------------------------------------------------- start
+applyTheme();
 drawToggles();
 finesse = createFinesse();
 applyView();

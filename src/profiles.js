@@ -2,7 +2,7 @@
 import { load, save } from './storage.js';
 
 export const DEFAULT_SETTINGS = {
-  sound: true, names: false, words: 'steady', layout: 'full', view: 'UFR', mirror: 'auto', drillSet: 'faces',
+  sound: true, names: false, words: 'steady', layout: 'full', view: 'UFR', mirror: 'auto', drillSet: 'faces', theme: 'classic',
 };
 const HISTORY_LIMIT = 2000;
 
