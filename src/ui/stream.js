@@ -39,20 +39,20 @@ export function createStream({ root, caseLabel, line, caret }) {
 
       const items = stream.naming
         ? [{ w: plan.name, nota: '?', state: 'cur', hidden: true }]
-        : stream.words.map((w, i) => ({ w, nota: stream.notation[i], state: i < stream.i ? 'done' : i === stream.i ? 'cur' : 'next' }));
+        : stream.words.map((w, i) => ({ w, nota: stream.notation[i], state: i < stream.i ? 'done' : i === stream.i ? 'cur' : 'next', slip: stream.slips[i] }));
       let caretAt = null;
       for (const it of items) {
         const el = document.createElement('span');
-        const typedHere = it.state === 'done' ? stream.typed[items.indexOf(it)] : undefined;
-        const missed = typedHere !== undefined && typedHere !== (it.w === REPEAT ? '' : it.w);
+        const missed = it.slip !== undefined;
         el.className = 'sw' + (it.state === 'done' ? ' done' : '') + (it.w === REPEAT ? ' repeat' : '') + (missed ? ' missed' : '');
         const nota = document.createElement('span');
         nota.className = 'nota' + (isAlt(it.nota) ? ' alt' : '');
         nota.textContent = it.nota;
         const word = document.createElement('span');
+        word.className = 'word';
         const cur = it.state === 'cur';
-        // Finished words with typos keep showing what was typed.
-        const shown = cur ? buffer : missed && it.w !== REPEAT ? typedHere : null;
+        // Finished words with typos keep showing what was typed (a missed ⏎ shows its letters too).
+        const shown = cur ? buffer : missed ? it.slip : null;
         const okUpTo = cur ? good : shown ? [...shown].findIndex((c, k) => c !== it.w[k]) : 0;
         const goodLen = okUpTo < 0 ? (shown || '').length : okUpTo;
         const length = shown ? Math.max(it.w.length, shown.length) : it.w.length;

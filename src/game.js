@@ -137,7 +137,7 @@ function maybeStartStream() {
   stream = {
     plan, i: 0, notation: plan.moves,
     words: wordsForMoves(plan.moves, { calm: mode === 'zen', ctx }),
-    typed: [], // what the player typed for each finished word, shown as typed
+    slips: {}, // word index -> what was typed, for finished words that had typos
     naming: settings().names && plan.name !== 'auf',
   };
 }
@@ -245,13 +245,12 @@ function stopDrill() {
 }
 
 // ---------------------------------------------------------------- input
-// A move that isn't allowed (a wrong swipe in drill, or enter where no double is due).
+// Something that isn't allowed: a wrong swipe in drill, or a wrong case name.
 function error() {
   errors++;
   combo = 0;
   sound.error();
   if (drill) drill.miss();
-  echo.wrong('⏎');
   board.flashWrong();
   drawHud();
 }
@@ -308,7 +307,14 @@ function typeChar(ch) {
 function complete() {
   // Algorithm lines work like Monkeytype: space moves on. Only the last word finishes by itself.
   if (stream) {
-    if (stream.naming || stream.i !== stream.words.length - 1 || buffer !== stream.words[stream.i]) return false;
+    if (stream.naming) {
+      if (buffer !== stream.plan.name) return false;
+      stream.naming = false;
+      wordDone(buffer);
+      refresh(false);
+      return true;
+    }
+    if (stream.i !== stream.words.length - 1 || buffer !== stream.words[stream.i]) return false;
     nextStreamWord();
     return true;
   }
@@ -332,19 +338,19 @@ function nextStreamWord() {
   const clean = want === REPEAT ? !buffer : buffer === want;
   if (!clean) {
     combo = 0;
-    errors += want === REPEAT ? 1 : Math.max(0, want.length - goodLength());
+    if (want !== REPEAT) errors += Math.max(0, want.length - buffer.length); // wrong letters were counted as they were typed
+    stream.slips[stream.i] = buffer;
     sound.error();
   }
-  stream.typed[stream.i] = buffer;
   doMove(stream.notation[stream.i++]);
   if (clean) wordDone(want === REPEAT ? '' : want); else buffer = '';
   if (stream.i >= stream.words.length) { stream = null; finesse.reset(); afterMove(); } else refresh(false);
 }
 
-// Space in an algorithm line: move on (or answer the case name).
+// Space or enter in an algorithm line: move on (or check the case name).
 function streamSpace() {
   if (stream.naming) {
-    if (buffer === stream.plan.name) { stream.naming = false; wordDone(buffer); refresh(false); } else if (buffer) error();
+    if (buffer && buffer !== stream.plan.name) error();
     return;
   }
   if (!buffer && stream.words[stream.i] !== REPEAT) return; // like Monkeytype, space at the start of a word does nothing
@@ -369,10 +375,7 @@ function fireBoard(move) {
 // algorithm. Space or enter after a whole word picks it when a longer word also matches.
 function submit() {
   if (over || locked) return;
-  if (stream) {
-    if (stream.words[stream.i] === REPEAT && !buffer) return nextStreamWord();
-    return error();
-  }
+  if (stream) return streamSpace();
   if (!buffer && lastMove && !drill) {
     if (!t0) t0 = performance.now();
     board.fire(lastMove);
@@ -553,7 +556,7 @@ if (profiles.active().onboarded) input.focus(); else onboarding.start();
 
 // Hooks for automated checks in the browser console.
 window.cubeType = {
-  check: () => ({ mismatches: scene.mismatches(cube), phase, reached: PHASES[reached], stream: stream && stream.plan.name, words: board.words, drill: drill && { current: drill.current, done: drill.done, streak: drill.streak }, frame, finesse: finesse.score, turns }),
+  check: () => ({ mismatches: scene.mismatches(cube), phase, reached: PHASES[reached], stream: stream && stream.plan.name, words: board.words, drill: drill && { current: drill.current, done: drill.done, streak: drill.streak }, frame, finesse: finesse.score, turns, chars, errors }),
   type: (text) => { for (const ch of text) handleChar(ch); },
   rotate,
   load: (moves) => setPosition(Cube.split(moves), false),
