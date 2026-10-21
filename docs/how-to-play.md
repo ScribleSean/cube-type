@@ -79,6 +79,7 @@ The small corner view is the **mirror**. Set it separately: the opposite corner 
 | layout | **full**: every word is visible. **focus**: type a face letter to show that face's words. |
 | name cases | Type the OLL/PLL case name (`sune`, `tperm`) before its algorithm. |
 | sound | Key clicks, a rising note for each clean word, and a chord when you solve. |
+| theme | **soft** (default), **frost**, **daylight** (light) or **classic** (the original Monkeytype look). |
 
 Settings are saved to the current profile.
 

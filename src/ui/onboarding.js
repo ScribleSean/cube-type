@@ -1,5 +1,19 @@
 // First-run onboarding: name, how it works, settings, then a mode to start in.
+// Swatches for the theme choice: background, text and the three stage colors.
+const THEME_SWATCHES = {
+  soft: ['#2b2d31', '#ecebe6', '#8ccaf2', '#f4c859', '#ff9470'],
+  frost: ['#2e3440', '#eceff4', '#88c0d0', '#ebcb8b', '#e8997a'],
+  daylight: ['#f3f4f6', '#23272e', '#1f68a8', '#8a5e00', '#b63e1c'],
+  classic: ['#323437', '#d1d0c5', '#7fb4d9', '#e2b714', '#f2734a'],
+};
+const swatch = (theme) => `<span class="ob-swatch">${THEME_SWATCHES[theme].map((c) => `<i style="background:${c}"></i>`).join('')}</span>`;
+
 const CHOICES = [
+  { key: 'theme', title: 'look', options: [
+    { value: 'soft', label: 'soft', note: 'warm dark, easy to read' },
+    { value: 'frost', label: 'frost', note: 'cool blue-grey' },
+    { value: 'daylight', label: 'daylight', note: 'light, for bright rooms' },
+    { value: 'classic', label: 'classic', note: 'the original Monkeytype look' }] },
   { key: 'layout', title: 'board', options: [
     { value: 'full', label: 'full', note: 'every word is always on screen' },
     { value: 'focus', label: 'focus', note: 'type a face letter and only its words appear' }] },
@@ -20,7 +34,7 @@ const MODES = [
 ];
 const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-export function createOnboarding({ root, profiles, onDone }) {
+export function createOnboarding({ root, profiles, onDone, onSetting }) {
   let step = 0;
   const steps = [welcome, setup, pickMode];
 
@@ -50,8 +64,8 @@ export function createOnboarding({ root, profiles, onDone }) {
       <h2>how do you like to play?</h2>
       <p class="ob-lead">You can change all of this later from the top bar.</p>
       ${CHOICES.map((c) => `
-        <div class="ob-choice"><div class="ob-ctitle">${c.title}</div><div class="ob-opts">
-          ${c.options.map((o) => `<button class="ob-opt${s[c.key] === o.value ? ' on' : ''}" data-key="${c.key}" data-value="${o.value}"><b>${o.label}</b><span>${o.note}</span></button>`).join('')}
+        <div class="ob-choice ob-${c.key}"><div class="ob-ctitle">${c.title}</div><div class="ob-opts">
+          ${c.options.map((o) => `<button class="ob-opt${s[c.key] === o.value ? ' on' : ''}" data-key="${c.key}" data-value="${o.value}"><b>${c.key === 'theme' ? swatch(o.value) : ''}${o.label}</b><span>${o.note}</span></button>`).join('')}
         </div></div>`).join('')}
       <div class="ob-nav"><button data-go="back">back</button><button class="ob-primary" data-go="next">next</button></div>`;
   }
@@ -84,6 +98,7 @@ export function createOnboarding({ root, profiles, onDone }) {
     if (b.dataset.key) {
       const raw = b.dataset.value, value = raw === 'true' ? true : raw === 'false' ? false : raw;
       profiles.setting(b.dataset.key, value);
+      if (onSetting) onSetting(b.dataset.key);
       return draw();
     }
     if (b.dataset.mode) {

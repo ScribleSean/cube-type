@@ -73,6 +73,7 @@ const profilePanel = createProfilePanel({
 });
 const onboarding = createOnboarding({
   root: $('#onboarding'), profiles,
+  onSetting: (key) => { if (key === 'theme') applyTheme(); },
   onDone: (m) => { mode = m; profilePanel.redraw(); applyTheme(); drawToggles(); newGame(); input.focus(); },
 });
 $('#btn-intro').addEventListener('click', () => { profilePanel.toggle(false); onboarding.start(); });

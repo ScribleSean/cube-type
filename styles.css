@@ -277,6 +277,9 @@ footer { flex: none; color: var(--sub); font-size: .7rem; padding: 4px var(--gut
 }
 .ob-opt b, .ob-mode b { color: var(--text); font-size: .95rem; font-weight: 500; }
 .ob-opt.on { box-shadow: inset 0 0 0 1px var(--main); }
+.ob-swatch { display: inline-flex; gap: 2px; margin-right: 8px; vertical-align: -1px; }
+.ob-swatch i { width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(127, 127, 127, .35); }
+.ob-theme .ob-opts { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 .ob-opt.on b { color: var(--main); }
 .ob-modes { display: flex; flex-direction: column; gap: 8px; }
 .ob-mode:hover b, .ob-mode:focus-visible b { color: var(--main); }
