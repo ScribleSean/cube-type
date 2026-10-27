@@ -3,6 +3,7 @@ import { summarize } from '../stats.js';
 
 const fmt = (s) => (s == null ? '–' : s.toFixed(2));
 const pct = (x) => (x == null ? '–' : Math.round(x * 100) + '%');
+const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const stat = (k, v, small) => `<div class="stat${small ? ' sm' : ''}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
 
 export function createOverlays({ results, resultsBody, statsEl, statsBody, statsButton, getProfile, getAccent }) {
@@ -67,7 +68,7 @@ export function createOverlays({ results, resultsBody, statsEl, statsBody, stats
       statsButton.classList.toggle('on', open);
       if (!open) return;
       const p = getProfile(), s = summarize(p.records), sp = s.sprint;
-      const recent = s.recent.map((r) => `<tr><td>${r.mode}</td><td>${r.mode === 'zen' ? `${r.solves} solves` : fmt(r.time)}</td><td>${Math.round(r.wpm || 0)}</td><td>${pct(r.acc)}</td><td>${pct(r.finesse)}</td><td>${new Date(r.at).toLocaleDateString()}</td></tr>`).join('');
+      const recent = s.recent.map((r) => `<tr><td>${escapeHtml(r.mode)}</td><td>${r.mode === 'zen' ? `${escapeHtml(r.solves)} solves` : fmt(r.time)}</td><td>${Math.round(r.wpm || 0)}</td><td>${pct(r.acc)}</td><td>${pct(r.finesse)}</td><td>${new Date(r.at).toLocaleDateString()}</td></tr>`).join('');
       statsBody.innerHTML = `
         <div class="pb">stats · ${p.name.replace(/[<>&]/g, '')}</div>
         <div class="big">${stat('best', fmt(sp.best))}${stat('ao5', fmt(sp.ao5))}${stat('ao12', fmt(sp.ao12))}</div>

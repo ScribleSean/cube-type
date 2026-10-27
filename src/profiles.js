@@ -10,8 +10,13 @@ const makeId = () => Date.now().toString(36) + Math.random().toString(36).slice(
 const cleanName = (name) => String(name || '').trim().replace(/\s+/g, ' ').slice(0, 20) || 'player';
 const newProfile = (name) => ({ id: makeId(), name: cleanName(name), created: Date.now(), onboarded: false, settings: { ...DEFAULT_SETTINGS }, records: [] });
 
+const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 let data = load('profiles', null);
-if (!data || !data.profiles || !Object.keys(data.profiles).length) {
+if (isObject(data) && isObject(data.profiles)) {
+  // Drop anything in storage that isn't a profile object.
+  for (const id of Object.keys(data.profiles)) if (!isObject(data.profiles[id])) delete data.profiles[id];
+}
+if (!isObject(data) || !isObject(data.profiles) || !Object.keys(data.profiles).length) {
   const first = newProfile('player');
   data = { active: first.id, profiles: { [first.id]: first } };
 }
@@ -19,7 +24,7 @@ for (const p of Object.values(data.profiles)) {
   p.settings = { ...DEFAULT_SETTINGS, ...p.settings };
   if (p.played) { p.onboarded = true; delete p.played; }
 }
-if (!data.profiles[data.active]) data.active = Object.keys(data.profiles)[0];
+if (!Object.hasOwn(data.profiles, data.active)) data.active = Object.keys(data.profiles)[0];
 const persist = () => save('profiles', data);
 persist();
 

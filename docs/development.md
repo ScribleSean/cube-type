@@ -1,7 +1,7 @@
 # Development
 
-Plain HTML, CSS and ES modules. There's no build step and no dependencies. three.js r128 loads from
-cdnjs.
+Plain HTML, CSS and ES modules. There's no build step and no dependencies. three.js r128 (MIT) is vendored
+at `vendor/three.min.js`, copied from cdnjs (sha512 matches cdnjs's published SRI).
 
 ## Run
 
