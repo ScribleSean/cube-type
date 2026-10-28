@@ -11,7 +11,7 @@
 // The pick is a weighted random draw (softmax over scores), not "always the best",
 // so typing stays varied the way Monkeytype's random picks are. Lower temperature
 // = more often the top-scoring word; higher = closer to uniform random.
-export const WEIGHTS = { flow: 0.30, noSfb: 0.25, balance: 0.15, ease: 0.15, novelty: 0.15 };
+export const WEIGHTS = { flow: 0.55, noSfb: 0.20, balance: 0.10, ease: 0.075, novelty: 0.075 };
 export const TEMPERATURE = 0.08;
 
 // QWERTY touch-typing fingers: 0-3 left pinky..index, 4-7 right index..pinky.
