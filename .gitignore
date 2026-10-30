@@ -3,3 +3,11 @@
 node_modules/
 # Design exploration (not shipped)
 design/
+
+# Agent files (local only)
+CLAUDE.md
+AGENTS.md
+.codex/
+HANDOFF*
+*.local.md
+.worktrees/
