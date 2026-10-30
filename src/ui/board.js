@@ -1,10 +1,9 @@
-// The word board: one chip per move, placed around the cube, filled by the word picker.
 import { WORDS, BOARD_MOVES } from '../words.js';
 import { pick } from '../picker.js';
 
 const isAlt = (m) => /^[MESxyz]/.test(m);
 const LIKE = { M: 'L', E: 'D', S: 'F', x: 'R', y: 'U', z: 'F' };
-// Eight cells around the cube, counter-clockwise from the right, matching screen angles.
+// Counter-clockwise from the right, matching screen angles.
 const CELLS = ['r', 'tr', 't', 'tl', 'l', 'bl', 'b', 'br'];
 
 export function createBoard({ arena, slices, rotations }) {
@@ -18,7 +17,6 @@ export function createBoard({ arena, slices, rotations }) {
     chips[move] = el;
     return el;
   }
-  // Slices and rotations get their own panels, each pair captioned with the face it turns like.
   for (const [panel, bases] of [[slices, ['M', 'E', 'S']], [rotations, ['x', 'y', 'z']]]) {
     for (const b of bases) {
       const pair = document.createElement('div');
@@ -33,8 +31,6 @@ export function createBoard({ arena, slices, rotations }) {
   return {
     get words() { return words; },
 
-    // Put each face's chips in the cell its face points toward on screen.
-    // `directions` comes from the scene; `worldFace` maps a player face to the world face it shows.
     layout(directions, worldFace) {
       const byWorld = Object.fromEntries(directions.map((d) => [d.face, d]));
       const faces = 'RLUDFB'.split('').map((f) => ({ f, ...byWorld[worldFace(f)] })).sort((a, b) => b.mag - a.mag);
@@ -50,8 +46,6 @@ export function createBoard({ arena, slices, rotations }) {
       }
     },
 
-    // Choose a word for every move. `keep` holds the word just typed so it can be typed
-    // again for a double. `levelUp` plays the flip animation.
     assign({ tier, keep, ctx, levelUp }) {
       const next = {}, used = [];
       const clash = (w) => used.some((u) => u.startsWith(w) || w.startsWith(u));
@@ -75,9 +69,8 @@ export function createBoard({ arena, slices, rotations }) {
       });
     },
 
-    // Moves whose word starts with `prefix` (optionally only `only`).
-    matches(prefix, only) {
-      return BOARD_MOVES.filter((m) => words[m] && words[m].startsWith(prefix) && (!only || m === only));
+    matches(prefix) {
+      return BOARD_MOVES.filter((m) => words[m] && words[m].startsWith(prefix));
     },
 
     draw({ buffer, target, highlight }) {

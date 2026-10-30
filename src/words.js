@@ -1,6 +1,3 @@
-// Word pools per move and intensity tier: [calm, building, intense].
-// First letter = face. Clockwise moves get "go" words, prime moves get "back" words.
-// Typing a word twice does a double move. Bigger pools keep algorithms from repeating.
 export const WORDS = {
   "R":  [['roam', 'rise', 'reach', 'radiant', 'rover', 'ruby'],
          ['rush', 'ride', 'roll', 'rally', 'racer', 'rumble', 'rapid'],
@@ -62,13 +59,11 @@ export const WORDS = {
   "y'": [['yield', 'yearn', 'yawn'], ['yoke', 'yelp', 'yew'], ['yap', 'yuck', 'yesterday']],
   "z":  [['zen', 'zone', 'zinnia'], ['zip', 'zoom', 'zeal'], ['zap', 'zing', 'zenith']],
   "z'": [['zero', 'zephyr', 'zither'], ['zag', 'zest', 'zinc'], ['zigzag', 'zonk', 'zombie']],
-  // Wide moves only show up inside last-layer algorithms.
   "r":  [['ripple'], ['reel', 'ravine'], ['ravage', 'roar']],
   "r'": [['ravel'], ['rasp', 'recess'], ['recede', 'repel']],
   "f":  [['flutter'], ['fury', 'fervor'], ['furnace', 'foray']],
   "f'": [['fend'], ['fumble', 'flounder'], ['forfeit', 'fray']],
 };
 
-// The 24 moves on the board.
 export const BOARD_MOVES = ["R", "R'", "L", "L'", "U", "U'", "D", "D'", "F", "F'", "B", "B'",
                       "M", "M'", "E", "E'", "S", "S'", "x", "x'", "y", "y'", "z", "z'"];

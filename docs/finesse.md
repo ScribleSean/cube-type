@@ -5,7 +5,7 @@ wasted.
 
 ## The rule
 
-Moves on the same axis don't interfere with each other: R, L and M all turn around the same axis, so
+Moves on the same axis don't interfere with each other. R, L and M all turn around the same axis, so
 `R L R'` does the same thing as `L`. The game groups your turns by axis until you turn around a
 different axis. Inside a group, each layer's quarter turns add up to a net rotation:
 

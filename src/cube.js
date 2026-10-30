@@ -1,6 +1,3 @@
-// Pure cube logic, no DOM.
-// The cube is a list of stickers, each with a cubie position p (-1..1 per axis),
-// an outward normal n, and a color c. A move rotates every selected sticker.
 const FACES = { U: [0, 1, 0], D: [0, -1, 0], R: [1, 0, 0], L: [-1, 0, 0], F: [0, 0, 1], B: [0, 0, -1] };
 const COLOR_OF = { U: 'W', D: 'Y', R: 'R', L: 'O', F: 'G', B: 'B' };
 const DIRS = Object.values(FACES);
@@ -10,19 +7,19 @@ const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a
 const neg = (a) => [-a[0], -a[1], -a[2]];
 const add = (...vs) => vs.reduce((s, v) => [s[0] + v[0], s[1] + v[1], s[2] + v[2]], [0, 0, 0]);
 
-// Rotate v a quarter turn about unit axis d. s = 1 is clockwise looking at the face d points to.
-function rot(v, d, s) {
-  const c = cross(d, v), k = dot(d, v);
-  return [d[0] * k - s * c[0], d[1] * k - s * c[1], d[2] * k - s * c[2]];
+const CLOCKWISE = 1, COUNTERCLOCKWISE = -1;
+
+function quarterTurn(v, axis, direction) {
+  const c = cross(axis, v), k = dot(axis, v);
+  return [axis[0] * k - direction * c[0], axis[1] * k - direction * c[1], axis[2] * k - direction * c[2]];
 }
 
-// Parse a token like R, R', R2, r, M, x' into an axis, a layer selector, a direction and a turn count.
 function moveSpec(tok) {
   const m = /^([URFDLBurfdlbMESxyz])(2'|2|')?$/.exec(tok);
   if (!m) throw new Error('bad move ' + tok);
   const b = m[1], suf = m[2] || '';
   const turns = suf.startsWith('2') ? 2 : 1;
-  const s = suf === "'" ? -1 : 1;
+  const s = suf === "'" ? COUNTERCLOCKWISE : CLOCKWISE;
   let d, sel;
   if ('URFDLB'.includes(b)) { d = FACES[b]; sel = (p) => dot(p, d) === 1; }
   else if ('urfdlb'.includes(b)) { d = FACES[b.toUpperCase()]; sel = (p) => dot(p, d) >= 0; }
@@ -47,14 +44,13 @@ function apply(st, tok) {
   const { d, sel, s, turns } = moveSpec(tok);
   for (const k of st) {
     if (!sel(k.p)) continue;
-    for (let t = 0; t < turns; t++) { k.p = rot(k.p, d, s); k.n = rot(k.n, d, s); }
+    for (let t = 0; t < turns; t++) { k.p = quarterTurn(k.p, d, s); k.n = quarterTurn(k.n, d, s); }
   }
   return st;
 }
 const applyAll = (st, toks) => { for (const t of toks) apply(st, t); return st; };
 const split = (alg) => alg.trim().split(/\s+/).filter(Boolean);
 
-// Lookup helper: color at (position, normal).
 function index(st) {
   const m = new Map();
   for (const k of st) m.set(k.p.join() + '|' + k.n.join(), k.c);
@@ -91,7 +87,6 @@ function f2lOn(at, n) {
 }
 const isSolved = (st) => { const at = index(st); return DIRS.every((n) => faceUniform(at, n)); };
 
-// cross -> f2l -> oll -> pll -> done
 function phase(st) {
   const at = index(st);
   if (DIRS.every((n) => faceUniform(at, n))) return 'done';
@@ -100,7 +95,6 @@ function phase(st) {
   return 'cross';
 }
 
-// Progress inside a stage: best cross (edges 0-4) and, on a face with a full cross, solved F2L pairs (0-4).
 function progress(st) {
   const at = index(st);
   let edges = 0, pairs = 0;
@@ -123,9 +117,9 @@ function progress(st) {
   return { edges, pairs };
 }
 
-// Last-layer algorithms, written with the last layer on U.
+const LINE = { name: 'line', alg: "F R U R' U' F'" };
 const OLL_EDGES = [
-  { name: 'line', alg: "F R U R' U' F'" },
+  LINE,
   { name: 'angle', alg: "F U R U' R' F'" },
 ];
 const OLL_CORNERS = [
@@ -162,7 +156,7 @@ const PLL = [
 ];
 
 const AUF = [[], ['U'], ['U', 'U'], ["U'"]];
-// Doubles become two single turns, so every token is one word in the game.
+// Split doubles so each token takes one word in the game.
 const singles = (toks) => toks.flatMap((t) => (t.length > 1 && t[1] === '2' ? [t[0], t[0]] : [t]));
 
 function edgesOriented(at) {
@@ -170,14 +164,13 @@ function edgesOriented(at) {
   return perps(u).every((a) => at(add(u, a), u) === center(at, u));
 }
 
-// Plan the next last-layer step. Returns { step, name, moves } with single-turn tokens, or null.
+const TURN_LAST_LAYER_UP = { '0,1,0': [], '0,-1,0': ['x', 'x'], '0,0,1': ['x'], '0,0,-1': ["x'"], '1,0,0': ["z'"], '-1,0,0': ['z'] };
+
 function planLL(st) {
   const at0 = index(st);
   const base = DIRS.find((n) => f2lOn(at0, n));
   if (!base) return null;
-  const ll = neg(base).join();
-  // Rotate the whole cube so the last layer faces up.
-  const pre = { '0,1,0': [], '0,-1,0': ['x', 'x'], '0,0,1': ['x'], '0,0,-1': ["x'"], '1,0,0': ["z'"], '-1,0,0': ['z'] }[ll];
+  const pre = TURN_LAST_LAYER_UP[neg(base).join()];
   const s0 = applyAll(clone(st), pre);
   const at = index(s0);
   let step, set, goal;
@@ -194,23 +187,19 @@ function planLL(st) {
       if (goal(applyAll(clone(s0), moves))) best = { name: a.name, moves };
     }
   }
-  // Dot case: no single edge alg finishes, so do the line alg once and replan.
-  if (!best && set === OLL_EDGES) best = { name: 'dot', moves: singles(split(OLL_EDGES[0].alg)) };
+  if (!best && set === OLL_EDGES) best = { name: 'dot', moves: singles(split(LINE.alg)) };
   if (!best) return null;
   return { step, name: best.name, moves: [...pre, ...best.moves] };
 }
 
-// Player frame. The camera can show the cube from any side, so the face on the player's
-// left is "F" and the face on their right is "R". That frame is the world turned by k
-// quarter turns about the vertical axis (k = 0 when world F is on the left).
 const Y_CYCLE = ['F', 'R', 'B', 'L'];
-const SLICE_LIKE = { L: 'M', R: "M'", F: 'S', B: "S'" };   // slice that turns like this face
-const ROTATION_LIKE = { R: 'x', L: "x'", F: 'z', B: "z'" }; // whole-cube turn like this face
+const SLICE_LIKE = { L: 'M', R: "M'", F: 'S', B: "S'" };
+const ROTATION_LIKE = { R: 'x', L: "x'", F: 'z', B: "z'" };
 const spinFace = (f, k) => Y_CYCLE[(Y_CYCLE.indexOf(f) + k) % 4];
+const quarters = (k) => ((k % 4) + 4) % 4;
 
-// Translate a move from the player's frame (turned by k) into world coordinates.
 function toWorld(tok, k) {
-  k = ((k % 4) + 4) % 4;
+  k = quarters(k);
   if (!k) return tok;
   const m = /^([URFDLBurfdlbMESxyz])(2'|2|')?$/.exec(tok);
   const base = m[1], suffix = m[2] || '';
@@ -222,19 +211,16 @@ function toWorld(tok, k) {
   else if (base === 'S') out = SLICE_LIKE[spinFace('F', k)];
   else if (base === 'x') out = ROTATION_LIKE[spinFace('R', k)];
   else if (base === 'z') out = ROTATION_LIKE[spinFace('F', k)];
-  else out = base; // U, D, E, y, u, d keep their meaning
+  else out = base;
   const flipped = out.endsWith("'");
   const core = flipped ? out.slice(0, -1) : out;
   if (suffix.startsWith('2')) return core + '2';
   return core + ((suffix === "'") !== flipped ? "'" : '');
 }
-// Plan the next last-layer step in the player's frame. Returned moves are player moves.
-const planLLFor = (st, k) => planLL(applyAll(clone(st), Array(((k % 4) + 4) % 4).fill('y')));
-const toPlayer = (tok, k) => toWorld(tok, 4 - (((k % 4) + 4) % 4));
-// k for a player whose left-hand side face is `leftFace` (one of F R B L).
+const planLLFor = (st, k) => planLL(applyAll(clone(st), Array(quarters(k)).fill('y')));
+const toPlayer = (tok, k) => toWorld(tok, 4 - quarters(k));
 const frameFor = (leftFace) => Y_CYCLE.indexOf(leftFace);
 
-// Random-state-ish scramble: 20 face turns, no two in a row on the same axis.
 function scramble(len = 20, rnd = Math.random) {
   const axis = { U: 0, D: 0, R: 1, L: 1, F: 2, B: 2 };
   const out = [];
@@ -248,4 +234,4 @@ function scramble(len = 20, rnd = Math.random) {
   return out;
 }
 
-export { toWorld, toPlayer, frameFor, planLLFor, FACES, COLOR_OF, moveSpec, solved, clone, apply, applyAll, split, singles, isSolved, phase, progress, planLL, scramble, OLL_EDGES, OLL_CORNERS, PLL };
+export { toWorld, toPlayer, frameFor, planLLFor, FACES, COLOR_OF, moveSpec, solved, apply, applyAll, split, isSolved, phase, progress, scramble, OLL_EDGES, OLL_CORNERS, PLL };

@@ -1,14 +1,10 @@
-// The word stream: a last-layer algorithm shown as a Monkeytype line of words.
 import { WORDS } from '../words.js';
 import { pick } from '../picker.js';
 
 const isAlt = (m) => /^[MESxyz]/.test(m);
 
-// The second half of a double: press enter instead of typing the word again.
 export const REPEAT = '⏎';
 
-// One word per move, and no word twice in the same algorithm. The second turn of a
-// double (two identical moves in a row) is REPEAT.
 export function wordsForMoves(moves, { calm, ctx }) {
   const used = new Set(), recent = [...ctx.recent], out = [];
   moves.forEach((tok, i) => {
@@ -26,8 +22,6 @@ export function wordsForMoves(moves, { calm, ctx }) {
 export function createStream({ root, caseLabel, line, caret }) {
   let caretTimer = null;
   return {
-    // `good` = how many typed letters are right. The rest show in red in place, and letters
-    // past the end of the word are added after it, also in red.
     draw(stream, buffer, good = buffer.length) {
       root.hidden = !stream;
       document.body.classList.toggle('streaming', !!stream);
@@ -51,7 +45,6 @@ export function createStream({ root, caseLabel, line, caret }) {
         const word = document.createElement('span');
         word.className = 'word';
         const cur = it.state === 'cur';
-        // Finished words with typos keep showing what was typed (a missed ⏎ shows its letters too).
         const shown = cur ? buffer : missed ? it.slip : null;
         const okUpTo = cur ? good : shown ? [...shown].findIndex((c, k) => c !== it.w[k]) : 0;
         const goodLen = okUpTo < 0 ? (shown || '').length : okUpTo;

@@ -68,3 +68,12 @@ test('player-frame moves equal turning the whole cube, moving, and turning back'
 test('a scramble is never solved', () => {
   assert.ok(!C.isSolved(C.applyAll(C.solved(), C.scramble())));
 });
+
+test('the dot case is planned as the line algorithm, then replanned', () => {
+  const st = C.applyAll(C.solved(), C.split("F R U R' U' F' f R U R' U' f'"));
+  const dot = C.planLLFor(st, 0);
+  assert.equal(dot.name, 'dot');
+  assert.deepEqual(dot.moves, C.split("F R U R' U' F'"));
+  C.applyAll(st, dot.moves);
+  assert.notEqual(C.planLLFor(st, 0).name, 'dot');
+});

@@ -1,8 +1,8 @@
-// Top-of-screen readouts: timer, combo, wpm, finesse, stage bar, toasts.
 const STAGES = ['cross', 'f2l', 'oll', 'pll'];
+const DONE = STAGES.length;
 const fmt = (s) => s.toFixed(2);
 
-export function createHud({ timer, label, combo, wpm, finesse, stages, toasts }) {
+export function createHud({ timer: timerEl, label: labelEl, combo: comboEl, wpm: wpmEl, finesse: finesseEl, stages, toasts }) {
   const segs = {};
   for (const p of STAGES) {
     const el = document.createElement('div');
@@ -12,30 +12,27 @@ export function createHud({ timer, label, combo, wpm, finesse, stages, toasts })
   }
 
   return {
-    // g: { time, showTimer, label, combo, wpm, finesse, reached, current, splits, progress, hideSplits }
-    draw(g) {
-      timer.hidden = !g.showTimer;
-      timer.textContent = fmt(g.time);
-      label.textContent = g.label || '';
-      combo.textContent = g.combo >= 3 ? `x${g.combo}` : '';
-      combo.classList.toggle('hot', g.combo >= 10);
-      combo.style.fontSize = Math.min(1 + g.combo / 40, 1.6) + 'rem';
-      wpm.textContent = g.wpm === null ? '' : `${Math.round(g.wpm)} wpm`;
-      finesse.textContent = g.finesse === null ? '' : `${Math.round(g.finesse * 100)}% finesse`;
+    draw({ time, label, combo, wpm, finesse, reached, current, splits, progress }) {
+      timerEl.textContent = fmt(time);
+      labelEl.textContent = label || '';
+      comboEl.textContent = combo >= 3 ? `x${combo}` : '';
+      comboEl.classList.toggle('hot', combo >= 10);
+      comboEl.style.fontSize = Math.min(1 + combo / 40, 1.6) + 'rem';
+      wpmEl.textContent = wpm === null ? '' : `${Math.round(wpm)} wpm`;
+      finesseEl.textContent = finesse === null ? '' : `${Math.round(finesse * 100)}% finesse`;
 
       STAGES.forEach((p, i) => {
         const el = segs[p];
-        // A finished stage that is temporarily broken (say, the cross while inserting a pair).
-        const broken = i < g.reached && g.current <= i && g.current !== 4;
+        const broken = i < reached && current <= i && current !== DONE;
         let right = '';
         if (broken) right = '!';
-        else if (g.reached > i && g.splits[p] !== undefined) right = g.hideSplits ? '✓' : fmt(g.splits[p] - (i ? g.splits[STAGES[i - 1]] || 0 : 0));
-        else if (p === 'cross' && g.reached === 0) right = `${g.progress.edges}/4`;
-        else if (p === 'f2l' && g.reached === 1) right = `${g.progress.pairs}/4`;
+        else if (reached > i && splits[p] !== undefined) right = fmt(splits[p] - (i ? splits[STAGES[i - 1]] || 0 : 0));
+        else if (p === 'cross' && reached === 0) right = `${progress.edges}/4`;
+        else if (p === 'f2l' && reached === 1) right = `${progress.pairs}/4`;
         const html = `<span>${p}</span><b>${right}</b>`;
         if (el.innerHTML !== html) el.innerHTML = html;
-        el.classList.toggle('done', g.reached > i);
-        el.classList.toggle('now', g.reached === i);
+        el.classList.toggle('done', reached > i);
+        el.classList.toggle('now', reached === i);
         el.classList.toggle('broken', broken);
       });
     },

@@ -1,4 +1,3 @@
-// Local profiles: each has a name, its own settings and a history of records.
 import { load, save } from './storage.js';
 
 export const DEFAULT_SETTINGS = {
@@ -10,21 +9,45 @@ const makeId = () => Date.now().toString(36) + Math.random().toString(36).slice(
 const cleanName = (name) => String(name || '').trim().replace(/\s+/g, ' ').slice(0, 20) || 'player';
 const newProfile = (name) => ({ id: makeId(), name: cleanName(name), created: Date.now(), onboarded: false, settings: { ...DEFAULT_SETTINGS }, records: [] });
 
+// Storage is outside input: parse it here, once, so the rest of the game can trust a profile's shape.
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const MODES = ['sprint', 'zen', 'drill'];
+const numbersOf = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => typeof v === 'number' && Number.isFinite(v)));
+
+// A record keeps its mode (one of MODES), its segments and its other fields only when they are numbers.
+function parseRecord(r) {
+  if (!isObject(r) || !MODES.includes(r.mode)) return null;
+  const rec = { ...numbersOf(r), mode: r.mode };
+  if (isObject(r.segments)) rec.segments = numbersOf(r.segments);
+  return rec;
+}
+
+function parseProfile(id, p) {
+  if (!isObject(p)) return null;
+  return {
+    id,
+    name: cleanName(typeof p.name === 'string' ? p.name : ''),
+    created: typeof p.created === 'number' ? p.created : 0,
+    onboarded: p.onboarded === true || p.played === true,
+    settings: { ...DEFAULT_SETTINGS, ...(isObject(p.settings) ? p.settings : {}) },
+    records: Array.isArray(p.records) ? p.records.map(parseRecord).filter(Boolean) : [],
+  };
+}
+
 let data = load('profiles', null);
+const parsed = Object.create(null);
 if (isObject(data) && isObject(data.profiles)) {
-  // Drop anything in storage that isn't a profile object.
-  for (const id of Object.keys(data.profiles)) if (!isObject(data.profiles[id])) delete data.profiles[id];
+  for (const [id, raw] of Object.entries(data.profiles)) {
+    const p = parseProfile(id, raw);
+    if (p) parsed[id] = p;
+  }
 }
-if (!isObject(data) || !isObject(data.profiles) || !Object.keys(data.profiles).length) {
+if (!Object.keys(parsed).length) {
   const first = newProfile('player');
-  data = { active: first.id, profiles: { [first.id]: first } };
+  parsed[first.id] = first;
 }
-for (const p of Object.values(data.profiles)) {
-  p.settings = { ...DEFAULT_SETTINGS, ...p.settings };
-  if (p.played) { p.onboarded = true; delete p.played; }
-}
-if (!Object.hasOwn(data.profiles, data.active)) data.active = Object.keys(data.profiles)[0];
+const storedActive = isObject(data) ? data.active : undefined;
+data = { active: Object.hasOwn(parsed, storedActive) ? storedActive : Object.keys(parsed)[0], profiles: parsed };
 const persist = () => save('profiles', data);
 persist();
 

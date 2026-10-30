@@ -1,20 +1,6 @@
-// Word picker: scores each candidate word for how smooth it is to type, then samples.
-// Pure logic, no DOM.
-//
-// score(w) = Σ weight_i × feature_i(w), every feature in 0..1 (higher = better)
-//   flow      share of letter pairs that switch hands (left ↔ right)
-//   noSfb     1 − share of letter pairs typed by the same finger (different letters)
-//   balance   how much the word pulls recent typing back toward a 50/50 hand split
-//   ease      short words are faster to read and type: 1 at ≤4 letters, 0 at ≥9
-//   novelty   1 − how recently this word was used, minus overlap with words on screen
-//
-// The pick is a weighted random draw (softmax over scores), not "always the best",
-// so typing stays varied the way Monkeytype's random picks are. Lower temperature
-// = more often the top-scoring word; higher = closer to uniform random.
 export const WEIGHTS = { flow: 0.55, noSfb: 0.20, balance: 0.10, ease: 0.075, novelty: 0.075 };
 export const TEMPERATURE = 0.08;
 
-// QWERTY touch-typing fingers: 0-3 left pinky..index, 4-7 right index..pinky.
 const FINGER = {};
 [['qaz', 0], ['wsx', 1], ['edc', 2], ['rfvtgb', 3], ['yhnujm', 4], ['ik', 5], ['ol', 6], ['p', 7]]
   .forEach(([keys, f]) => { for (const k of keys) FINGER[k] = f; });
@@ -27,15 +13,13 @@ export function features(w, ctx = {}) {
   const flow = pairs.filter(([a, b]) => hand(a) !== hand(b)).length / n;
   const sfb = pairs.filter(([a, b]) => a !== b && FINGER[a] === FINGER[b]).length / n;
 
-  // Hand balance: recent share of left-hand keys vs this word's share.
   const left = [...w].filter((c) => hand(c) === 'L').length / w.length;
   const recentLeft = ctx.leftShare === undefined ? 0.5 : ctx.leftShare;
-  const want = 1 - recentLeft; // if recent typing leaned left, prefer right-heavy words
+  const want = 1 - recentLeft;
   const balance = 1 - Math.abs(left - want);
 
   const ease = Math.max(0, Math.min(1, (9 - w.length) / 5));
 
-  // Novelty: recency of this exact word, plus letters shared with words already on screen.
   const recent = ctx.recent || [];
   const idx = recent.lastIndexOf(w);
   const recency = idx < 0 ? 0 : Math.max(0, 1 - (recent.length - 1 - idx) / 12);
@@ -53,7 +37,6 @@ export function score(w, ctx) {
   return s;
 }
 
-// Softmax sample. Words equal to one of the last two picks are skipped, like Monkeytype.
 export function pick(pool, ctx = {}, rnd = Math.random) {
   const recent = ctx.recent || [];
   const last2 = recent.slice(-2);
@@ -69,7 +52,6 @@ export function pick(pool, ctx = {}, rnd = Math.random) {
   return cands[cands.length - 1];
 }
 
-// Rolling typing context: recent words and the left-hand share of recent keys.
 export function makeContext() {
   const keys = [];
   const ctx = {

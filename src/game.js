@@ -1,8 +1,8 @@
-// Game controller: modes, typing, stages, finesse and records. Entry point for index.html.
 import * as Cube from './cube.js';
 import { makeContext } from './picker.js';
 import { createFinesse } from './finesse.js';
 import { createDrill } from './drill.js';
+import * as Typing from './typing.js';
 import { profiles } from './profiles.js';
 import { createSound } from './sound.js';
 import { createScene } from './scene.js';
@@ -16,7 +16,6 @@ import { createOnboarding } from './ui/onboarding.js';
 
 const $ = (s) => document.querySelector(s);
 const PHASES = ['cross', 'f2l', 'oll', 'pll', 'done'];
-// Accent color climbs with the stage (calm, building, intense). The theme defines the three colors.
 const THEMES = ['classic', 'soft', 'frost', 'daylight'];
 const stageColor = (i) => getComputedStyle(document.documentElement).getPropertyValue(`--stage-${Math.min(i, 2)}`).trim();
 const MOVE_INFO = {
@@ -27,11 +26,10 @@ const MOVE_INFO = {
 const ARROW_ROTATIONS = { ArrowLeft: 'y', ArrowRight: "y'", ArrowUp: 'x', ArrowDown: "x'" };
 const SHIFT_ARROW_ROTATIONS = { ArrowLeft: "z'", ArrowRight: 'z' };
 
-const DRILL_HINT_MS = 1500; // light up the word if you haven't found it by then
+const DRILL_HINT_MS = 1500;
 
 const settings = () => profiles.active().settings;
 
-// ---------------------------------------------------------------- state
 let mode = 'sprint';
 let cube, phase, reached, splits, t0, over, locked, buffer, stream, solves, combo, samples, turns, prog, drill, finesse;
 let hint = false, hintTimer = null;
@@ -44,7 +42,6 @@ const accuracy = () => (chars ? chars / (chars + errors) : 1);
 const tier = () => (mode === 'zen' || mode === 'drill' ? 0 : Math.min(reached, 2));
 const target = () => (drill ? drill.current : null);
 
-// ---------------------------------------------------------------- modules
 const sound = createSound(() => settings().sound);
 const scene = createScene({
   stage: $('#stage'), canvas: $('#cube'), mirrorBox: $('#mirror'), mirrorLabel: $('#mirror-label'),
@@ -79,8 +76,6 @@ const onboarding = createOnboarding({
 $('#btn-intro').addEventListener('click', () => { profilePanel.toggle(false); onboarding.start(); });
 const popovers = [viewPanel, profilePanel];
 
-// ---------------------------------------------------------------- view and frame
-// The player's frame follows the camera: the side face shown on the left is their F.
 function applyView() {
   const s = settings();
   scene.setView(s.view, s.mirror);
@@ -92,7 +87,6 @@ function applyView() {
   if (stream) { stream = null; maybeStartStream(); refresh(false); }
 }
 
-// ---------------------------------------------------------------- game flow
 function setPosition(worldMoves, slide) {
   cube = Cube.applyAll(Cube.solved(), worldMoves);
   scene.setPosition(worldMoves, slide);
@@ -139,7 +133,7 @@ function maybeStartStream() {
   stream = {
     plan, i: 0, notation: plan.moves,
     words: wordsForMoves(plan.moves, { calm: mode === 'zen', ctx }),
-    slips: {}, // word index -> what was typed, for finished words that had typos
+    slips: {},
     naming: settings().names && plan.name !== 'auf',
   };
 }
@@ -151,7 +145,6 @@ function doMove(tok) {
   turns++;
 }
 
-// A player-chosen turn (typed on the board, or a swipe/arrow-key rotation).
 function playerTurn(tok) {
   const wasted = finesse.turn(tok);
   doMove(tok);
@@ -179,7 +172,6 @@ function afterMove() {
   }
   if (phase === 'done') return solved();
   maybeStartStream();
-  // steady: words change only the first time you reach a new stage. flux: after every turn.
   const levelUp = reached > was && !stream;
   if (levelUp && settings().words === 'steady') hud.toast(`${PHASES[reached]} · new words`);
   refresh(settings().words === 'flux' || levelUp, levelUp && settings().words === 'steady');
@@ -221,10 +213,8 @@ function stopZen() {
   overlays.showResults(run);
 }
 
-// What gets saved: everything except the per-second samples.
 const record = ({ samples: _, ...rest }) => rest;
 
-// Drill: next random move, fresh words, and a hint timer for the new move.
 function drillNext() {
   drill.hit();
   if (drill.streak % 10 === 0) { sound.stage(); hud.toast(`streak ${drill.streak}`); }
@@ -246,8 +236,6 @@ function stopDrill() {
   overlays.showResults(run);
 }
 
-// ---------------------------------------------------------------- input
-// Something that isn't allowed: a wrong swipe in drill, or a wrong case name.
 function error() {
   errors++;
   combo = 0;
@@ -264,34 +252,19 @@ function wordDone(word) {
   sound.word(combo);
 }
 
-// Typing never drops or corrects a letter. Everything typed stays; letters that don't fit
-// show in red until you delete them, and a move happens only when the typed letters are
-// exactly its word.
-const MAX_TYPED = 24;
-
-// The words the typed letters can be heading for right now.
 function candidates() {
   if (stream) return [stream.naming ? stream.plan.name : stream.words[stream.i]].filter((w) => w !== REPEAT);
   if (drill) return [board.words[drill.current]];
   return Object.values(board.words);
 }
 
-// How many typed letters are right: the longest start of the buffer that some candidate shares.
-function goodLength() {
-  let best = 0;
-  for (const w of candidates()) {
-    let i = 0;
-    while (i < buffer.length && buffer[i] === w[i]) i++;
-    best = Math.max(best, i);
-  }
-  return best;
-}
+const goodLength = () => Typing.goodLength(buffer, candidates());
 
 function typeChar(ch) {
-  if (buffer.length >= MAX_TYPED) return;
-  const wasClean = goodLength() === buffer.length;
-  buffer += ch;
-  if (goodLength() === buffer.length) {
+  const step = Typing.addLetter(buffer, ch, candidates());
+  if (!step) return;
+  buffer = step.typed;
+  if (step.ok) {
     chars++;
     sound.key();
     if (complete()) return;
@@ -299,15 +272,15 @@ function typeChar(ch) {
     errors++;
     combo = 0;
     sound.error();
-    if (wasClean && drill) drill.miss();
+    if (step.firstSlip && drill) drill.miss();
     board.flashWrong();
   }
   redrawTyping();
 }
 
-// Fire the move if the buffer is now a whole word. Returns true when it did.
+const onLastWord = (s) => s.i === s.words.length - 1;
+
 function complete() {
-  // Algorithm lines work like Monkeytype: space moves on. Only the last word finishes by itself.
   if (stream) {
     if (stream.naming) {
       if (buffer !== stream.plan.name) return false;
@@ -316,7 +289,7 @@ function complete() {
       refresh(false);
       return true;
     }
-    if (stream.i !== stream.words.length - 1 || buffer !== stream.words[stream.i]) return false;
+    if (!onLastWord(stream) || buffer !== stream.words[stream.i]) return false;
     nextStreamWord();
     return true;
   }
@@ -325,7 +298,7 @@ function complete() {
     fireBoard(drill.current);
     return true;
   }
-  // Wait while a longer word on screen still starts with these letters (space picks the short one).
+  // Wait while a longer word still matches; space picks the short one.
   const hits = board.matches(buffer);
   const exact = hits.find((m) => board.words[m] === buffer);
   if (!exact || hits.length > 1) return false;
@@ -333,14 +306,12 @@ function complete() {
   return true;
 }
 
-// Move to the next word of the algorithm line. The move happens even if the word had
-// typos (they stay on screen in red); missing letters count against accuracy.
 function nextStreamWord() {
   const want = stream.words[stream.i];
   const clean = want === REPEAT ? !buffer : buffer === want;
   if (!clean) {
     combo = 0;
-    if (want !== REPEAT) errors += Math.max(0, want.length - buffer.length); // wrong letters were counted as they were typed
+    if (want !== REPEAT) errors += Typing.missedLetters(buffer, want);
     stream.slips[stream.i] = buffer;
     sound.error();
   }
@@ -349,13 +320,13 @@ function nextStreamWord() {
   if (stream.i >= stream.words.length) { stream = null; finesse.reset(); afterMove(); } else refresh(false);
 }
 
-// Space or enter in an algorithm line: move on (or check the case name).
 function streamSpace() {
   if (stream.naming) {
     if (buffer && buffer !== stream.plan.name) error();
     return;
   }
-  if (!buffer && stream.words[stream.i] !== REPEAT) return; // like Monkeytype, space at the start of a word does nothing
+  // Space at the start of a word does nothing.
+  if (!buffer && stream.words[stream.i] !== REPEAT) return;
   nextStreamWord();
 }
 
@@ -373,8 +344,6 @@ function fireBoard(move) {
   afterMove();
 }
 
-// Enter: with nothing typed, repeat the last turn (a double), or do the ⏎ step of an
-// algorithm. Space or enter after a whole word picks it when a longer word also matches.
 function submit() {
   if (over || locked) return;
   if (stream) return streamSpace();
@@ -400,7 +369,6 @@ function handleChar(ch) {
   drawHud();
 }
 
-// Whole-cube rotation from a swipe or arrow key.
 function rotate(tok) {
   if (over || locked || overlays.statsOpen) return;
   if (drill) {
@@ -454,7 +422,7 @@ document.addEventListener('keydown', (e) => {
   const rot = (e.shiftKey ? SHIFT_ARROW_ROTATIONS : ARROW_ROTATIONS)[e.key];
   if (rot) { e.preventDefault(); return rotate(rot); }
   if (e.key === 'Backspace') {
-    e.preventDefault(); // handled here, so the placeholder stays put
+    e.preventDefault(); // Keep the hidden input placeholder in place.
     backspace(e.ctrlKey || e.altKey || e.metaKey);
   }
   if (document.activeElement !== input) input.focus();
@@ -464,7 +432,6 @@ document.addEventListener('pointerup', (e) => {
   input.focus();
 });
 
-// ---------------------------------------------------------------- drawing
 function setAccent() {
   accent = stageColor(mode === 'zen' || mode === 'drill' ? 0 : reached);
   document.documentElement.style.setProperty('--main', accent);
@@ -480,7 +447,6 @@ function drawBoard() {
   echo.draw(buffer, good);
 }
 
-// The drill prompt: the move in big notation, with what it means underneath.
 function drawPrompt() {
   const el = $('#prompt');
   el.hidden = !drill;
@@ -493,7 +459,6 @@ function drawPrompt() {
 function drawHud() {
   hud.draw({
     time: elapsed(),
-    showTimer: true,
     label: mode === 'zen' ? `zen · ${solves} solved` : drill ? `${drill.done} moves · streak ${drill.streak}` : phase === 'done' ? 'solved' : '',
     combo, wpm: t0 ? wpm() : null,
     finesse: t0 && !drill && finesse.turns ? finesse.score : null,
@@ -512,7 +477,6 @@ function refresh(reassign, levelUp) {
 
 setInterval(() => { if (t0 && !over) samples.push(Math.round(wpm())); }, 1000);
 
-// ---------------------------------------------------------------- settings toggles
 const toggles = {
   sound: { el: $('#btn-sound'), text: (v) => (v ? 'sound on' : 'sound off'), next: (v) => !v },
   words: { el: $('#btn-words'), text: (v) => v, next: (v) => (v === 'steady' ? 'flux' : 'steady'), note: (v) => (v === 'steady' ? 'steady · words change at each new stage' : 'flux · words reshuffle every turn') },
@@ -545,9 +509,7 @@ for (const [key, t] of Object.entries(toggles)) {
 }
 document.querySelectorAll('nav [data-mode]').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.mode; newGame(); }));
 
-// ---------------------------------------------------------------- one-screen sizing
-// The page never scrolls: it is sized to the visible viewport, which shrinks when a
-// phone keyboard opens.
+// The visible viewport shrinks when a phone keyboard opens.
 function fitViewport() {
   const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
   document.documentElement.style.setProperty('--app-h', h + 'px');
@@ -556,7 +518,6 @@ function fitViewport() {
 (window.visualViewport || window).addEventListener('resize', fitViewport);
 fitViewport();
 
-// ---------------------------------------------------------------- start
 applyTheme();
 drawToggles();
 finesse = createFinesse();

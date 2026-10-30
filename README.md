@@ -13,11 +13,11 @@ your OLL and PLL show up as a line of words to type. Swipe the cube or use the a
 | sprint | One timed solve with splits |
 | zen | Untimed, cubes keep coming |
 
-Stats (best, ao5, ao12, splits, finesse) and profiles are saved in your browser.
+The game saves stats (best, ao5, ao12, splits, finesse) and profiles in your browser.
 
 ## Run locally
 
-No build step and no dependencies. Clone the repo and serve the folder (ES modules don't load from `file://`):
+There's no build step and no dependencies. Clone the repo and serve the folder (ES modules don't load from `file://`):
 
 ```bash
 git clone https://github.com/ScribleSean/cube-type.git
@@ -31,7 +31,7 @@ More: [How to play](docs/how-to-play.md) Â· [Word picker](docs/word-picker.md) Â
 
 ## Contributing
 
-Issues and pull requests are welcome. Run `npm test` (Node 20+) before opening a PR; the logic modules are covered by `node --test`. See [Development](docs/development.md) for the code layout.
+Issues and pull requests are welcome. Before you open a PR, run `npm test` (Node 20 or newer). It runs `node --test` on the logic modules. See [Development](docs/development.md) for the code layout.
 
 ## License
 

@@ -1,5 +1,3 @@
-/* cube type · one screen, no page scroll. The cube area takes whatever height is left. */
-/* Themes. Each sets the palette, fonts and corner size; everything else reads these. */
 :root, :root[data-theme="classic"] {
   --bg: #323437; --bg-alt: #2c2e31; --sub: #646669; --text: #d1d0c5;
   --err: #ca4754; --alt: #b392f0; --flash: #3c3d40; --overlay: rgba(50, 52, 55, .97);
@@ -9,7 +7,6 @@
   --r: 8px;
   color-scheme: dark;
 }
-/* Soft: Monkeytype's dark, a little warmer, brighter labels, rounded type for the menus. */
 :root[data-theme="soft"] {
   --bg: #2b2d31; --bg-alt: #36383d; --sub: #a8aab1; --text: #ecebe6;
   --err: #f07178; --alt: #c3a6ff; --flash: #393b40; --overlay: rgba(43, 45, 49, .97);
@@ -19,7 +16,6 @@
   --r: 12px;
   color-scheme: dark;
 }
-/* Frost: cool blue-grey, easy on the eyes for long sessions. */
 :root[data-theme="frost"] {
   --bg: #2e3440; --bg-alt: #3b4252; --sub: #aab3c4; --text: #eceff4;
   --err: #f2858e; --alt: #c9a3d9; --flash: #3b4252; --overlay: rgba(46, 52, 64, .97);
@@ -29,7 +25,6 @@
   --r: 12px;
   color-scheme: dark;
 }
-/* Daylight: a light theme for bright rooms and phones outside. */
 :root[data-theme="daylight"] {
   --bg: #f3f4f6; --bg-alt: #e4e7eb; --sub: #565c68; --text: #23272e;
   --err: #c02d39; --alt: #6a44bd; --flash: #e8eaee; --overlay: rgba(243, 244, 246, .97);
@@ -59,7 +54,6 @@ body.flash { background: var(--flash); transition: none; }
 button { font: inherit; }
 kbd { background: var(--bg-alt); border-radius: 4px; padding: 1px 6px; font-family: inherit; color: var(--text); }
 
-/* Top bar: fixed in place, never scrolls away. */
 header {
   flex: none; width: 100%; max-width: 1000px; z-index: 5;
   padding: calc(env(safe-area-inset-top, 0px) + 16px) var(--gutter-r) 6px var(--gutter-l);
@@ -92,7 +86,6 @@ main {
 #banner { flex: none; color: var(--sub); font-size: .82rem; min-height: 1.2rem; text-align: center; }
 #scr { flex: none; color: var(--sub); font-size: .72rem; opacity: .6; text-align: center; min-height: 1rem; }
 
-/* Stage bar */
 #stages { flex: none; display: flex; gap: 4px; width: 100%; max-width: 560px; margin: 4px 0 2px; }
 .seg {
   flex: 1; display: flex; justify-content: space-between; gap: 6px; padding: 5px 9px; border-radius: calc(var(--r) - 2px);
@@ -108,7 +101,6 @@ main {
 .seg.bump { animation: bump .3s ease-out; }
 @keyframes bump { 40% { transform: scale(1.06); } }
 
-/* Arena: eight cells around the cube. Each face's words sit in the cell its face points to. */
 #arena {
   flex: 1 0 auto; width: 100%; display: grid; gap: 8px; align-items: center; margin-top: 6px;
   grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
@@ -138,7 +130,6 @@ main {
 .toast.fault { color: var(--err); }
 @keyframes toast { 0% { opacity: 0; transform: translateY(6px); } 10% { opacity: 1; transform: none; } 75% { opacity: 1; } 100% { opacity: 0; } }
 
-/* Word chips */
 .chip {
   position: relative; background: var(--bg-alt); border-radius: var(--r); padding: 15px 10px 8px; min-width: 0; white-space: nowrap;
   text-align: center; font-size: 1.05rem; transition: opacity .12s, transform .08s, box-shadow .12s;
@@ -157,7 +148,6 @@ main {
 @keyframes flip { from { opacity: 0; transform: rotateX(90deg); } to { opacity: 1; transform: none; } }
 #timer, .chip .typed, .toast, #caret { transition: color .3s, background .3s; }
 
-/* Slices and rotations */
 #extras { flex: none; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 10px; }
 .group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .glabel { font-size: .65rem; color: var(--sub); letter-spacing: .1em; }
@@ -175,21 +165,17 @@ body.streaming .slot, body.streaming #hint { visibility: hidden; }
 body.streaming #extras { display: none; }
 body.drill #stages, body.drill #scr { visibility: hidden; }
 
-/* Typed letters under the cube. A wrong letter shows in red for a moment. */
 #echo {
   flex: none; height: 2.1rem; margin-top: 6px; display: flex; align-items: center; justify-content: center;
   font-size: 1.5rem; letter-spacing: .02em; border-radius: var(--r); min-width: 9rem; padding: 0 14px;
-  transition: background .15s;
 }
 .echo-typed { color: var(--main); }
 .echo-bad { color: var(--err); text-decoration: underline 2px; text-underline-offset: 4px; }
 .echo-caret { width: 2px; height: 1.4rem; background: var(--main); margin-left: 2px; animation: blink 1s step-end infinite; }
-#echo.wrong { background: color-mix(in srgb, var(--err) 18%, transparent); }
 #arena.wrong .chip { animation: wrongflash .3s ease-out; }
 @keyframes wrongflash { 0% { box-shadow: inset 0 0 0 1px var(--err); } 100% { box-shadow: none; } }
 body.streaming #echo { display: none; }
 
-/* Drill prompt, over the cube */
 #prompt {
   position: absolute; z-index: 2; left: 0; right: 0; top: 4px; text-align: center; pointer-events: none;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -198,7 +184,6 @@ body.streaming #echo { display: none; }
 #prompt span { font-size: .75rem; color: var(--sub); letter-spacing: .06em; }
 body.drill .chip.target { box-shadow: inset 0 0 0 2px var(--main); }
 
-/* Word stream */
 #stream { flex: none; width: 100%; margin-top: 10px; }
 #case { color: var(--sub); font-size: .82rem; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; text-align: center; }
 #case b { color: var(--main); font-weight: 500; }
@@ -219,7 +204,6 @@ body.drill .chip.target { box-shadow: inset 0 0 0 2px var(--main); }
 
 footer { flex: none; color: var(--sub); font-size: .7rem; padding: 4px var(--gutter-r) calc(env(safe-area-inset-bottom, 0px) + 10px) var(--gutter-l); text-align: center; opacity: .8; }
 
-/* Popovers (view, profiles) */
 .popover {
   position: fixed; z-index: 20; top: calc(env(safe-area-inset-top, 0px) + 58px); right: var(--gutter-r);
   width: min(440px, calc(100vw - 32px)); max-height: calc(var(--app-h, 100dvh) - 80px); overflow-y: auto;
@@ -256,7 +240,6 @@ footer { flex: none; color: var(--sub); font-size: .7rem; padding: 4px var(--gut
 .plink { margin-top: 10px; background: none; border: 0; color: var(--sub); font-size: .75rem; cursor: pointer; padding: 4px 0; }
 .plink:hover { color: var(--text); }
 
-/* Onboarding */
 .ob { max-width: 620px; }
 .ob h1 { font-size: 2.6rem; margin: 6px 0 4px; letter-spacing: -.02em; }
 .ob h1 span { color: var(--main); }
@@ -287,7 +270,6 @@ footer { flex: none; color: var(--sub); font-size: .7rem; padding: 4px var(--gut
 .ob-nav button { background: var(--bg-alt); border: 0; border-radius: var(--r); color: var(--sub); padding: 9px 16px; cursor: pointer; }
 .ob-nav .ob-primary { color: var(--bg); background: var(--main); font-weight: 500; }
 
-/* Overlays (results, stats) */
 .overlay {
   position: fixed; inset: 0; z-index: 10; background: var(--overlay);
   display: flex; align-items: center; justify-content: center; overflow-y: auto;
@@ -336,7 +318,6 @@ td { padding: 5px 8px 5px 0; border-top: 1px solid var(--bg-alt); white-space: n
   .stat .v { font-size: 2.2rem; }
   .vgrid { gap: 6px; }
 }
-/* Short screens (laptops with toolbars, phones in landscape): tighter chips, fewer extras. */
 @media (max-height: 760px) {
   #scr, footer { display: none; }
   #banner { font-size: .72rem; min-height: 1rem; }

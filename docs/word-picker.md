@@ -1,18 +1,18 @@
 # Word picker
 
 Each move has a pool of words (see [`src/words.js`](../src/words.js)). Every time the board fills
-up, or an algorithm needs words, the picker chooses from those pools. The goal is the Monkeytype
-feeling: short, familiar words that flow.
+up, or an algorithm needs words, the picker chooses from those pools. The goal is what Monkeytype
+gives you: short, familiar words that are easy to type in a row.
 
 ## What Monkeytype does
 
 Monkeytype's word generator draws words at random from a list of common words. The only rule is that
 a word can't match either of the last two
 ([source](https://github.com/monkeytypegame/monkeytype/blob/master/frontend/src/ts/test/words-generator.ts)).
-The smoothness comes from the word list (short, very common words) more than from any clever choosing.
+Most of the smoothness comes from the word list (short, very common words), not from how it picks.
 
-cube·type keeps that randomness and the last-two rule. It also tilts the odds toward words that are
-easy to type in a row.
+cube·type keeps that randomness and the last-two rule. It also makes words that are easy to type in a
+row more likely.
 
 ## The score
 
@@ -46,9 +46,10 @@ With `T = 0.08`, a word that scores 0.1 higher is about 3.5× as likely to be pi
 
 Two filters run first:
 
-- Words equal to either of the last two picks are skipped, like Monkeytype.
-- On the board, a word can't be the start of another word on screen, so typing never gets stuck
-  waiting. Inside one algorithm a word isn't reused, except for doubles, which repeat on purpose.
+- The picker skips words equal to either of the last two picks, like Monkeytype.
+- On the board, no word can be the start of another word on screen, so each word turns its layer
+  as soon as you type its last letter. Inside one algorithm a word isn't reused, except for doubles,
+  which repeat on purpose.
 
 ## Where it applies
 

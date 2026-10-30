@@ -6,8 +6,8 @@ The first time you open the game, a short intro sets your name, your settings an
 You can replay it from the profile menu.
 
 Each move has a word. Type the word and that layer turns, with no space needed. What you type shows
-under the cube. The game never deletes or corrects your typing: wrong letters stay there in red until
-you backspace them, and a move happens only when what you typed is exactly its word.
+under the cube. The game doesn't delete or correct your typing. Wrong letters stay in red until you
+backspace them, and a move happens only when what you typed is exactly its word.
 
 - The first letter of a word is its face: `r` words turn R, `u` words turn U, and so on.
 - Words about going forward turn clockwise, and words about going back turn counter-clockwise.
@@ -36,22 +36,22 @@ counter-clockwise.
 | Arrow keys ← → ↑ ↓ | y, y', x, x' |
 | Shift + ← → | z', z |
 
-The rotation words (`xray`, `yaw`, `zen`, ...) work too.
+Rotation words such as `xray`, `yaw` and `zen` work too.
 
 ## Stages
 
-The bar at the top tracks CFOP: cross (edges 0/4), F2L (pairs 0/4), OLL, PLL. A finished stage shows
-its split time.
+The bar at the top tracks the four CFOP stages: cross (edges 0/4), F2L (pairs 0/4), OLL and PLL. A
+finished stage shows its split time.
 
-When F2L is done, the board is replaced by a line of words for your last-layer algorithm. The game
+When F2L is done, a line of words for your last-layer algorithm replaces the board. The game
 picks the algorithm and the U turns before and after it. Type the line like a Monkeytype test: type a
-word, press space, type the next. Space moves on even if the word has a typo: the move still happens,
+word, press space, type the next. Space moves on even if the word has a typo. The move still happens,
 the typo stays in red, and it counts against accuracy. The last word finishes by itself. The second
 half of a double shows as ⏎. In an algorithm line, enter does the same as space.
 2-look OLL needs two lines and PLL needs one.
 
 If you break a finished stage on purpose, for example opening the cross to insert a pair, the stage
-shows `!` until it is restored. Nothing else changes.
+shows `!` until you restore it. Nothing else changes.
 
 ## Drill
 
@@ -81,7 +81,7 @@ The small corner view is the **mirror**. Set it separately: the opposite corner 
 | sound | Key clicks, a rising note for each clean word, and a chord when you solve. |
 | theme | **soft** (default), **frost**, **daylight** (light) or **classic** (the original Monkeytype look). |
 
-Settings are saved to the current profile.
+Each profile keeps its own settings.
 
 ## Keys
 

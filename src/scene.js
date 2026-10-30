@@ -1,17 +1,14 @@
-// The 3D cube: meshes, turn animation, turn arrows, cameras, previews and drag-to-inspect.
-// three.js is loaded as a global (THREE) by index.html.
 import * as Cube from './cube.js';
 
 const THREE = window.THREE;
 
 export const FACE_NAME = { U: 'top', D: 'bottom', F: 'front', B: 'back', R: 'right', L: 'left' };
 
-// Camera views: the 8 corners of the cube, named by the three faces they show.
 export const VIEWS = [];
 for (const sy of [1, -1]) for (const sz of [1, -1]) for (const sx of [1, -1]) {
   VIEWS.push({ id: (sy > 0 ? 'U' : 'D') + (sz > 0 ? 'F' : 'B') + (sx > 0 ? 'R' : 'L'), pos: [sx * 5.4, sy * 5.2, sz * 8] });
 }
-export const viewById = (id) => VIEWS.find((v) => v.id === id) || VIEWS[0];
+const viewById = (id) => VIEWS.find((v) => v.id === id) || VIEWS[0];
 const opposite = (v) => VIEWS.find((x) => x.pos.every((n, i) => n === -v.pos[i]));
 
 const STICKER_HEX = { W: 0xf2f2ee, Y: 0xffd23f, R: 0xe5383b, O: 0xff8a1f, G: 0x2bb673, B: 0x2f6fde };
@@ -36,7 +33,6 @@ export function createScene({ stage, canvas, mirrorBox, mirrorLabel, onFrame, on
   const camMirror = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
   let mirrorOn = true, accent = '#7fb4d9';
 
-  // Cubies
   const stickerGeo = roundedSquare(0.42, 0.1);
   const boxGeo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
   const boxMat = new THREE.MeshBasicMaterial({ color: 0x1b1c1e });
@@ -61,7 +57,6 @@ export function createScene({ stage, canvas, mirrorBox, mirrorLabel, onFrame, on
     cubies.push(g);
   }
 
-  // Turn animation
   const queue = [];
   let anim = null;
   const gridPos = (c) => [Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z)];
@@ -89,7 +84,6 @@ export function createScene({ stage, canvas, mirrorBox, mirrorLabel, onFrame, on
   }
   function flush() { while (anim || queue.length) { if (!anim) startTurn(queue.shift(), 0); finishTurn(); } }
 
-  // A curved arrow on the turning layer that fades out, showing the direction.
   const arrows = [];
   function spawnArrow(spec, tok) {
     const whole = /^[xyz]/.test(tok), slice = /^[MES]/.test(tok);
@@ -120,8 +114,6 @@ export function createScene({ stage, canvas, mirrorBox, mirrorLabel, onFrame, on
     }
   }
 
-  // Swipes turn the whole cube. Horizontal = y, vertical = x, and shift-drag or a
-  // two-finger swipe = z. While dragging the cube leans a little toward the turn.
   const SWIPE_PX = 36, LEAN = 0.35;
   const view = new THREE.Quaternion(), tmpQ = new THREE.Quaternion();
   const UP = new THREE.Vector3(0, 1, 0), RIGHT = new THREE.Vector3(1, 0, 0), OUT = new THREE.Vector3(0, 0, 1);
@@ -150,20 +142,19 @@ export function createScene({ stage, canvas, mirrorBox, mirrorLabel, onFrame, on
     drag = null;
     if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX || !onSwipe) return;
     if (z) onSwipe(dx > 0 ? 'z' : "z'");
-    else if (Math.abs(dx) > Math.abs(dy)) onSwipe(dx > 0 ? "y'" : 'y'); // drag right: the front face follows to the right
-    else onSwipe(dy < 0 ? 'x' : "x'");                                  // drag up: the front face goes up
+    else if (Math.abs(dx) > Math.abs(dy)) onSwipe(dx > 0 ? "y'" : 'y'); // Drag right: the front face follows right.
+    else onSwipe(dy < 0 ? 'x' : "x'"); // Drag up: the front face follows up.
   }
   stage.addEventListener('pointerup', endDrag);
   stage.addEventListener('pointercancel', endDrag);
 
-  // Sizing and rendering
   const mirrorSize = (w, h) => Math.round(Math.min(w, h) * (w < 640 ? 0.3 : 0.34));
   function resize() {
     const w = stage.clientWidth, h = stage.clientHeight;
     if (!w || !h) return;
     renderer.setSize(w, h, false);
     camMain.aspect = w / h;
-    camMain.zoom = Math.min(1, camMain.aspect / 1.6); // narrow screens: zoom out to fit
+    camMain.zoom = Math.min(1, camMain.aspect / 1.6);
     camMain.updateProjectionMatrix();
     mirrorBox.style.width = mirrorBox.style.height = mirrorSize(w, h) + 'px';
   }
@@ -184,7 +175,7 @@ export function createScene({ stage, canvas, mirrorBox, mirrorLabel, onFrame, on
 
   let slideT0 = -1e9, pulseT0 = -1e9;
   function frame(now) {
-    if (anim && queue.length > 1) finishTurn(); // typing faster than the animation: skip ahead
+    if (anim && queue.length > 1) finishTurn(); // Typing has outpaced the animation; skip ahead.
     if (!anim && queue.length) startTurn(queue.shift(), queue.length ? FAST_TURN_MS : TURN_MS);
     if (anim) {
       const t = anim.ms ? Math.min(1, (now - anim.t0) / anim.ms) : 1;
@@ -203,7 +194,6 @@ export function createScene({ stage, canvas, mirrorBox, mirrorLabel, onFrame, on
     requestAnimationFrame(frame);
   }
 
-  // Preview thumbnails use their own small renderer.
   let thumbRenderer = null;
   function drawThumbs(canvases) {
     try { thumbRenderer = thumbRenderer || new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); } catch { return; }
@@ -228,7 +218,6 @@ export function createScene({ stage, canvas, mirrorBox, mirrorLabel, onFrame, on
 
   return {
     turn: (tok) => queue.push(tok),
-    // Show a position instantly: reset to solved, then apply the moves without animation.
     setPosition(toks, slide) {
       flush();
       for (const c of cubies) { c.position.set(...c.userData.home); c.quaternion.identity(); }
@@ -249,19 +238,17 @@ export function createScene({ stage, canvas, mirrorBox, mirrorLabel, onFrame, on
       }
       view.identity();
     },
-    // Where each face points on screen in the main view (through a square copy of the camera,
-    // so the answer doesn't depend on window size).
+    // A square camera keeps the answer independent of window size.
     faceDirections() {
-      const ref = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
-      ref.position.copy(camMain.position); ref.lookAt(0, 0, 0); ref.updateMatrixWorld();
-      const o = new THREE.Vector3().project(ref), camDir = camMain.position.clone().normalize();
+      const squareCam = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+      squareCam.position.copy(camMain.position); squareCam.lookAt(0, 0, 0); squareCam.updateMatrixWorld();
+      const o = new THREE.Vector3().project(squareCam), camDir = camMain.position.clone().normalize();
       return Object.entries(Cube.FACES).map(([face, d]) => {
-        const p = new THREE.Vector3(...d).multiplyScalar(1.5).project(ref);
+        const p = new THREE.Vector3(...d).multiplyScalar(1.5).project(squareCam);
         return { face, angle: Math.atan2(p.y - o.y, p.x - o.x), mag: Math.hypot(p.x - o.x, p.y - o.y), visible: new THREE.Vector3(...d).dot(camDir) > 0 };
       });
     },
     drawThumbs,
-    // Debug: stickers where the 3D view disagrees with a logic state (should be 0).
     mismatches(state) {
       flush();
       const colorOf = new Map(Object.entries(stickerMats).map(([k, m]) => [m, k]));

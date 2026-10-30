@@ -1,5 +1,5 @@
-// Popover panels: camera views and profiles.
 import { VIEWS, FACE_NAME } from '../scene.js';
+import { escapeHtml } from '../html.js';
 
 const spaced = (id) => id.split('').join(' ');
 
@@ -80,11 +80,6 @@ export function createProfilePanel({ panel, button, list, form, input, profiles,
   return popover(panel, button, draw, draw);
 }
 
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-}
-
-// Shared open/close behavior for a popover tied to a nav button.
 function popover(panel, button, onOpen, redraw) {
   const api = {
     get open() { return !panel.hidden; },

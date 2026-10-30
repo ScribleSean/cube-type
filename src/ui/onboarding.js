@@ -1,5 +1,5 @@
-// First-run onboarding: name, how it works, settings, then a mode to start in.
-// Swatches for the theme choice: background, text and the three stage colors.
+import { escapeHtml } from '../html.js';
+
 const THEME_SWATCHES = {
   soft: ['#2b2d31', '#ecebe6', '#8ccaf2', '#f4c859', '#ff9470'],
   frost: ['#2e3440', '#eceff4', '#88c0d0', '#ebcb8b', '#e8997a'],
@@ -10,7 +10,7 @@ const swatch = (theme) => `<span class="ob-swatch">${THEME_SWATCHES[theme].map((
 
 const CHOICES = [
   { key: 'theme', title: 'look', options: [
-    { value: 'soft', label: 'soft', note: 'warm dark, easy to read' },
+    { value: 'soft', label: 'soft', note: 'warm dark' },
     { value: 'frost', label: 'frost', note: 'cool blue-grey' },
     { value: 'daylight', label: 'daylight', note: 'light, for bright rooms' },
     { value: 'classic', label: 'classic', note: 'the original Monkeytype look' }] },
@@ -22,17 +22,16 @@ const CHOICES = [
     { value: 'flux', label: 'flux', note: 'words reshuffle after every turn' }] },
   { key: 'drillSet', title: 'drill moves', options: [
     { value: 'faces', label: 'faces', note: 'R L U D F B and their primes' },
-    { value: 'all', label: 'everything', note: 'faces plus slices (M E S) and rotations (x y z)' }] },
+    { value: 'all', label: 'all moves', note: 'faces plus slices (M E S) and rotations (x y z)' }] },
   { key: 'sound', title: 'sound', options: [
     { value: true, label: 'on', note: 'clicks and a note that climbs with your streak' },
     { value: false, label: 'off', note: 'silent' }] },
 ];
 const MODES = [
-  { mode: 'drill', title: 'drill', note: 'random moves on a loop. The best way to learn the words.' },
+  { mode: 'drill', title: 'drill', note: 'random moves in an endless loop.' },
   { mode: 'sprint', title: 'sprint', note: 'one timed solve with splits, WPM and finesse.' },
-  { mode: 'zen', title: 'zen', note: 'no pressure. Cubes keep coming until you press esc.' },
+  { mode: 'zen', title: 'zen', note: 'cubes keep coming until you press esc.' },
 ];
-const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function createOnboarding({ root, profiles, onDone, onSetting }) {
   let step = 0;
@@ -46,7 +45,7 @@ export function createOnboarding({ root, profiles, onDone, onSetting }) {
       <p class="ob-lead">Solve a Rubik's cube by typing words.</p>
       <ul class="ob-how">
         <li><b>type a word</b> and its layer turns. <code>rush</code> turns R, <code>recoil</code> turns R'.</li>
-        <li><b>first letter = face.</b> r words turn R, u words turn U.</li>
+        <li><b>the first letter is the face.</b> r words turn R, u words turn U.</li>
         <li><b>word, then enter</b> is a double turn: <code>rush</code> ⏎ is R2.</li>
         <li><b>swipe</b> the cube or use the <b>arrow keys</b> to rotate it (x, y, z).</li>
         <li>after F2L, your <b>OLL and PLL</b> appear as a line of words. Type it like Monkeytype, with <b>space</b> between words.</li>
@@ -88,7 +87,7 @@ export function createOnboarding({ root, profiles, onDone, onSetting }) {
   }
 
   root.addEventListener('keydown', (e) => {
-    e.stopPropagation(); // keep typing here out of the game
+    e.stopPropagation(); // Keep typing here out of the game.
     if (e.key === 'Enter' && e.target.id === 'ob-name') { e.preventDefault(); go('next'); }
   });
   root.addEventListener('click', (e) => {

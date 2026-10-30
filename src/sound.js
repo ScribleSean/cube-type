@@ -1,4 +1,3 @@
-// Small synthesized sounds (no audio files). `enabled` is read on every call.
 const SCALE = [0, 2, 4, 7, 9];
 
 export function createSound(enabled) {
@@ -20,7 +19,6 @@ export function createSound(enabled) {
   }
   return {
     key: () => blip(1500 + Math.random() * 250, 0.025, 'triangle', 0.02),
-    // Each clean word climbs a pentatonic scale, so streaks sound like they build.
     word: (combo) => blip(330 * 2 ** ((SCALE[combo % 5] + 12 * (Math.floor(combo / 5) % 3)) / 12), 0.09),
     error: () => blip(110, 0.12, 'square', 0.025),
     fault: () => blip(180, 0.1, 'sawtooth', 0.02),

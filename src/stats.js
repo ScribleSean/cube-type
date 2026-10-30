@@ -1,6 +1,3 @@
-// Stats from a profile's records. Pure functions.
-
-// WCA-style average of the last n times: drop the best and worst, mean the rest.
 export function averageOf(times, n) {
   if (times.length < n) return null;
   const last = times.slice(-n).sort((a, b) => a - b).slice(1, -1);

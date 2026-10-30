@@ -1,6 +1,4 @@
-// Drill: an endless loop of random moves. Pure logic, no DOM.
-// Never repeats the previous move, and never asks for its inverse right after it
-// (that would just undo the last turn).
+// Exclude the previous move and its inverse so the next turn does not undo it.
 const FACES = ['R', 'L', 'U', 'D', 'F', 'B'];
 const SLICES = ['M', 'E', 'S'];
 const ROTATIONS = ['x', 'y', 'z'];
