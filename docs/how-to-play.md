@@ -76,12 +76,12 @@ The small corner view is the **mirror**. Set it separately: the opposite corner 
 | Setting | Options |
 | --- | --- |
 | words | **steady**: words change only the first time you reach a new stage. **flux**: words reshuffle after every turn. |
-| layout | **full**: every word is visible. **focus**: type a face letter to show that face's words. |
-| name cases | Type the OLL/PLL case name (`sune`, `tperm`) before its algorithm. |
+| board | **full**: every word is visible. **focus**: type a face letter to show that face's words. |
+| case names | **on**: type the OLL/PLL case name (`sune`, `tperm`) before its algorithm. **off** (default): just the algorithm. |
 | sound | Key clicks, a rising note for each clean word, and a chord when you solve. |
 | theme | **soft** (default), **frost**, **daylight** (light) or **classic** (the original Monkeytype look). |
 
-Each profile keeps its own settings.
+Each profile keeps its own settings. The bar shows only the settings that apply to the current mode: drill has its own move setting, and words, board and case names appear in sprint and zen.
 
 ## Keys
 

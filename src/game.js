@@ -479,11 +479,11 @@ setInterval(() => { if (t0 && !over) samples.push(Math.round(wpm())); }, 1000);
 
 const toggles = {
   sound: { el: $('#btn-sound'), text: (v) => (v ? 'sound on' : 'sound off'), next: (v) => !v },
-  words: { el: $('#btn-words'), text: (v) => v, next: (v) => (v === 'steady' ? 'flux' : 'steady'), note: (v) => (v === 'steady' ? 'steady · words change at each new stage' : 'flux · words reshuffle every turn') },
-  layout: { el: $('#btn-layout'), text: (v) => v, next: (v) => (v === 'full' ? 'focus' : 'full') },
+  words: { el: $('#btn-words'), text: (v) => `words: ${v}`, next: (v) => (v === 'steady' ? 'flux' : 'steady'), note: (v) => (v === 'steady' ? 'steady · words change at each new stage' : 'flux · words reshuffle every turn') },
+  layout: { el: $('#btn-layout'), text: (v) => `board: ${v}`, next: (v) => (v === 'full' ? 'focus' : 'full') },
   theme: { el: $('#btn-theme'), text: (v) => `theme: ${v}`, next: (v) => THEMES[(THEMES.indexOf(v) + 1) % THEMES.length], apply: true },
   drillSet: { el: $('#btn-drillset'), text: (v) => (v === 'all' ? 'drill: all moves' : 'drill: faces'), next: (v) => (v === 'all' ? 'faces' : 'all'), restart: true },
-  names: { el: $('#btn-names'), text: () => 'name cases', next: (v) => !v },
+  names: { el: $('#btn-names'), text: (v) => (v ? 'case names: on' : 'case names: off'), next: (v) => !v },
 };
 function applyTheme() {
   document.documentElement.dataset.theme = settings().theme;

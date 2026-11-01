@@ -37,7 +37,7 @@ export function createProfilePanel({ panel, button, list, form, input, profiles,
 
   function draw() {
     const active = profiles.active();
-    button.textContent = active.name;
+    button.textContent = button.title = active.name;
     list.innerHTML = '';
     for (const p of profiles.list()) {
       const row = document.createElement('div');

@@ -68,7 +68,10 @@ nav button {
 }
 nav button:hover { color: var(--text); }
 nav button.on { color: var(--main); }
+:root[data-theme="classic"] nav button { font-size: .75rem; padding-inline: 5px; }
+#btn-profile { max-width: 10ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 nav .sep { flex: none; width: 1px; background: var(--bg-alt); margin: 4px 6px; }
+body:not(.drill) #btn-drillset, body.drill :is(#btn-words, #btn-layout, #btn-names) { display: none; }
 button:focus-visible, input:focus-visible { outline: 1px solid var(--main); outline-offset: 1px; }
 
 main {
