@@ -88,6 +88,7 @@ Each profile keeps its own settings. The bar shows only the settings that apply 
 | Key | Action |
 | --- | --- |
 | tab | New scramble |
+| shift+tab | Move to the menu bar. There, tab and shift+tab move between buttons, enter or space presses one, and typing goes back to the game. |
 | esc | Stop zen or drill and show results, or start over in sprint. Also closes panels. |
 | enter | On the board, repeat the last turn (a double). In an algorithm line, same as space. Restarts from the results screen. |
 | space | Next word in an algorithm line. On the board, picks a word that is also the start of a longer one. |

@@ -13,6 +13,7 @@ import { createViewPanel, createProfilePanel } from './ui/panels.js';
 import { createOverlays } from './ui/overlays.js';
 import { createEcho } from './ui/echo.js';
 import { createOnboarding } from './ui/onboarding.js';
+import { keyRoute, isControl, clickReturnsFocus } from './keys.js';
 
 const $ = (s) => document.querySelector(s);
 const PHASES = ['cross', 'f2l', 'oll', 'pll', 'done'];
@@ -417,7 +418,11 @@ document.addEventListener('keydown', (e) => {
     return newGame();
   }
   if (open && open.contains(document.activeElement)) return;
-  if (e.key === 'Tab') { e.preventDefault(); return newGame(); }
+  const active = document.activeElement;
+  const route = keyRoute(e.key, { shift: e.shiftKey, onControl: isControl(active, input) });
+  if (route === 'native') return;
+  if (route === 'toNav') { e.preventDefault(); return $('nav button').focus(); }
+  if (route === 'newGame') { e.preventDefault(); return newGame(); }
   if (e.key === 'Enter' && document.activeElement === input) { e.preventDefault(); return over ? newGame() : submit(); }
   const rot = (e.shiftKey ? SHIFT_ARROW_ROTATIONS : ARROW_ROTATIONS)[e.key];
   if (rot) { e.preventDefault(); return rotate(rot); }
@@ -426,6 +431,10 @@ document.addEventListener('keydown', (e) => {
     backspace(e.ctrlKey || e.altKey || e.metaKey);
   }
   if (document.activeElement !== input) input.focus();
+});
+$('nav').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (b && clickReturnsFocus(b, e.detail)) b.blur(); // Not input.focus(): that opens a phone's keyboard.
 });
 document.addEventListener('pointerup', (e) => {
   if (popovers.some((p) => p.contains(e.target)) || e.target.closest('#stats, button, input')) return;
