@@ -2,6 +2,8 @@
 
 Solve a Rubik's cube by typing words.
 
+<p align="center"><img src="docs/images/demo.gif" width="720" alt="A line of words typed like a typing test; each word turns a layer of the cube until it is solved"></p>
+
 **Play:** https://scriblesean.github.io/cube-type/
 
 Each turn has a word: `rush` turns R, `recoil` turns R'. Enter repeats the last turn. After F2L,
