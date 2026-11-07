@@ -26,3 +26,9 @@ test('streaks reset on a miss and the best is kept', () => {
   assert.equal(d.done, 4);
   assert.equal(d.misses, 1);
 });
+
+test('inherited drill-set names fall back to faces', () => {
+  for (const name of ['__proto__', 'constructor', 'toString']) {
+    assert.ok(DRILL_SETS.faces.includes(createDrill(name).current));
+  }
+});

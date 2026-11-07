@@ -32,12 +32,26 @@ const DRILL_HINT_MS = 1500;
 const settings = () => profiles.active().settings;
 
 let mode = 'sprint';
-let cube, phase, reached, splits, t0, over, locked, buffer, stream, solves, combo, samples, turns, prog, drill, finesse;
-let hint = false, hintTimer = null;
+let cube, phase, reached, splits, t0 = null, over, locked, buffer, stream, solves, combo, samples, turns, prog, drill, finesse;
+let hint = false, hintTimer = null, solveTimer = null;
+let pausedMs = 0, hiddenSince = document.hidden ? performance.now() : null;
 let chars, errors, lastMove, frame = 0, accent = '';
 const ctx = makeContext();
 
-const elapsed = () => (t0 ? (performance.now() - t0) / 1000 : 0);
+const elapsed = () => (t0 !== null ? ((hiddenSince ?? performance.now()) - t0 - pausedMs) / 1000 : 0);
+function startClock() {
+  if (t0 !== null) return;
+  t0 = performance.now();
+  if (document.hidden) hiddenSince = t0;
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (hiddenSince === null) hiddenSince = performance.now();
+  } else if (hiddenSince !== null) {
+    if (t0 !== null) pausedMs += performance.now() - hiddenSince;
+    hiddenSince = null;
+  }
+});
 const wpm = () => { const t = elapsed(); return t > 0.5 ? (chars / 5) / (t / 60) : 0; };
 const accuracy = () => (chars ? chars / (chars + errors) : 1);
 const tier = () => (mode === 'zen' || mode === 'drill' ? 0 : Math.min(reached, 2));
@@ -109,6 +123,8 @@ function loadScramble(slide) {
 function newGame() {
   splits = {}; t0 = null; over = false; locked = false; drill = null; hint = false;
   clearTimeout(hintTimer);
+  clearTimeout(solveTimer);
+  pausedMs = 0; hiddenSince = document.hidden ? performance.now() : null;
   chars = 0; errors = 0; combo = 0; solves = 0; samples = []; turns = 0;
   finesse = createFinesse();
   overlays.hideResults();
@@ -197,18 +213,19 @@ function solved() {
     hud.toast(`solve ${solves} · ${elapsed().toFixed(2)}`);
     locked = true;
     refresh(false);
-    setTimeout(() => { locked = false; splits = {}; loadScramble(true); }, 380);
+    solveTimer = setTimeout(() => { locked = false; splits = {}; loadScramble(true); }, 380);
     return;
   }
   over = true;
   refresh(false);
   const run = { mode: 'sprint', time: elapsed(), wpm: wpm(), acc: accuracy(), finesse: finesse.score, faults: finesse.faults, turns, segments: segments(), samples };
   profiles.addRecord(record(run));
-  setTimeout(() => overlays.showResults(run), 450);
+  solveTimer = setTimeout(() => overlays.showResults(run), 450);
 }
 
 function stopZen() {
   over = true;
+  clearTimeout(solveTimer);
   const run = { mode: 'zen', time: elapsed(), solves, wpm: wpm(), acc: accuracy(), finesse: finesse.score, turns, samples };
   profiles.addRecord(record(run));
   overlays.showResults(run);
@@ -229,6 +246,7 @@ function scheduleHint() {
 }
 function stopDrill() {
   over = true;
+  clearTimeout(solveTimer);
   clearTimeout(hintTimer);
   const time = elapsed();
   const run = { mode: 'drill', time, done: drill.done, rate: time ? drill.done / (time / 60) : 0, streak: drill.bestStreak,
@@ -346,10 +364,10 @@ function fireBoard(move) {
 }
 
 function submit() {
-  if (over || locked) return;
+  if (over || locked || overlays.statsOpen) return;
   if (stream) return streamSpace();
   if (!buffer && lastMove && !drill) {
-    if (!t0) t0 = performance.now();
+    startClock();
     board.fire(lastMove);
     playerTurn(lastMove);
     wordDone('');
@@ -361,11 +379,11 @@ function submit() {
 }
 
 function handleChar(ch) {
-  if (over || locked) return;
+  if (over || locked || overlays.statsOpen) return;
   if (ch === ' ') return stream ? streamSpace() : buffer ? submit() : undefined;
   if (ch === '\n') return submit();
   if (!/^[a-z]$/.test(ch)) return;
-  if (!t0) t0 = performance.now();
+  startClock();
   typeChar(ch);
   drawHud();
 }
@@ -374,11 +392,11 @@ function rotate(tok) {
   if (over || locked || overlays.statsOpen) return;
   if (drill) {
     if (tok !== target()) return error();
-    if (!t0) t0 = performance.now();
+    startClock();
     doMove(tok);
     return drillNext();
   }
-  if (!t0) t0 = performance.now();
+  startClock();
   stream = null;
   buffer = '';
   lastMove = tok;
@@ -392,22 +410,34 @@ function rotate(tok) {
 const input = $('#inp');
 const PLACEHOLDER = ' ';
 const resetInput = () => { input.value = PLACEHOLDER; input.setSelectionRange(1, 1); };
-input.addEventListener('input', () => {
+let composing = false;
+input.addEventListener('compositionstart', () => { composing = true; });
+input.addEventListener('compositionend', () => { composing = false; processInput(); });
+input.addEventListener('input', (e) => {
+  if (composing || e.isComposing) return;
+  processInput();
+});
+function processInput() {
   const v = input.value;
   resetInput();
   if (!v.startsWith(PLACEHOLDER)) return backspace(false);
   for (const ch of v.slice(1)) handleChar(ch.toLowerCase());
-});
+}
 input.addEventListener('focus', resetInput);
 function backspace(wholeWord) {
-  if (!buffer || over) return;
+  if (!buffer || over || locked || overlays.statsOpen) return;
   buffer = wholeWord ? '' : buffer.slice(0, -1);
   redrawTyping();
 }
 
 document.addEventListener('keydown', (e) => {
-  if (onboarding.open) return;
+  if (e.isComposing || composing || onboarding.open) return;
   const open = popovers.find((p) => p.open);
+  if (e.repeat && ['Enter', 'Escape', 'Tab', ...Object.keys(ARROW_ROTATIONS)].includes(e.key)) {
+    const native = isControl(document.activeElement, input) || (open && open.contains(document.activeElement));
+    if (native && e.key !== 'Enter' && e.key !== 'Escape') return;
+    e.preventDefault(); return;
+  }
   if (e.key === 'Escape') {
     e.preventDefault();
     if (open) return open.toggle(false);
@@ -417,6 +447,7 @@ document.addEventListener('keydown', (e) => {
     if (mode === 'drill' && t0) return stopDrill();
     return newGame();
   }
+  if (overlays.statsOpen) return;
   if (open && open.contains(document.activeElement)) return;
   const active = document.activeElement;
   const route = keyRoute(e.key, { shift: e.shiftKey, onControl: isControl(active, input) });
@@ -484,7 +515,7 @@ function refresh(reassign, levelUp) {
   drawHud();
 }
 
-setInterval(() => { if (t0 && !over) samples.push(Math.round(wpm())); }, 1000);
+setInterval(() => { if (t0 && !over && !document.hidden) samples.push(Math.round(wpm())); }, 1000);
 
 const toggles = {
   sound: { el: $('#btn-sound'), text: (v) => (v ? 'sound on' : 'sound off'), next: (v) => !v },

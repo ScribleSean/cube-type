@@ -11,7 +11,7 @@ export const DRILL_SETS = {
 const inverse = (m) => (m.endsWith("'") ? m.slice(0, -1) : m + "'");
 
 export function createDrill(set = 'faces', rnd = Math.random) {
-  const moves = DRILL_SETS[set] || DRILL_SETS.faces;
+  const moves = typeof set === 'string' && Object.hasOwn(DRILL_SETS, set) ? DRILL_SETS[set] : DRILL_SETS.faces;
   let current = null, done = 0, streak = 0, best = 0, misses = 0;
   const next = () => {
     const options = moves.filter((m) => m !== current && m !== (current && inverse(current)));
