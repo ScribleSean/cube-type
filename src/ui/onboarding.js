@@ -85,7 +85,7 @@ export function createOnboarding({ root, profiles, onDone, onSetting, onClose })
   }
 
   function draw() {
-    root.querySelector('.sheet').innerHTML = steps[step]();
+    root.querySelector('.sheet').innerHTML = steps[step]() + (profiles.active().onboarded ? '<button class="ob-close" data-go="close">close</button>' : '');
     const first = root.querySelector('#ob-name, .ob-primary, .ob-mode');
     if (first) setTimeout(() => first.focus(), 0);
   }
@@ -93,12 +93,13 @@ export function createOnboarding({ root, profiles, onDone, onSetting, onClose })
   root.addEventListener('keydown', (e) => {
     e.stopPropagation(); // Keep typing here out of the game.
     // A replay can be left; the first run has to pick a mode.
-    if (e.key === 'Escape' && profiles.active().onboarded) { root.hidden = true; if (onClose) onClose(); return; }
+    if (e.key === 'Escape' && profiles.active().onboarded) return close();
     if (e.key === 'Enter' && e.target.id === 'ob-name') { e.preventDefault(); go('next'); }
   });
   root.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
+    if (b.dataset.go === 'close') return profiles.active().onboarded ? close() : undefined;
     if (b.dataset.go) return go(b.dataset.go);
     if (b.dataset.key) {
       const raw = b.dataset.value, value = raw === 'true' ? true : raw === 'false' ? false : raw;
@@ -112,6 +113,8 @@ export function createOnboarding({ root, profiles, onDone, onSetting, onClose })
       onDone(b.dataset.mode);
     }
   });
+
+  function close() { root.hidden = true; if (onClose) onClose(); }
 
   function go(dir) {
     if (step === 0) {

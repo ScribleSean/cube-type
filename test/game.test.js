@@ -180,3 +180,9 @@ test('a finished alg line leaves nothing for Enter to repeat', () => {
   g.run("stream = { words: ['red'], notation: ['R'], i: 0, slips: {}, plan: {} }; buffer = 'red'; lastMove = 'U'; nextStreamWord()");
   assert.equal(g.run('lastMove'), null);
 });
+
+test('a wrong name typed in the naming step counts as an error', () => {
+  const g = game();
+  g.run("stream = { naming: true, words: ['red'], notation: ['R'], i: 0, slips: {}, plan: { name: 'sune' } }; buffer = 'su'; streamSpace()");
+  assert.equal(g.api.check().errors, 1);
+});

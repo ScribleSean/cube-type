@@ -348,7 +348,7 @@ function nextStreamWord() {
 
 function streamSpace() {
   if (stream.naming) {
-    if (buffer && buffer !== stream.plan.name) { combo = 0; sound.error(); board.flashWrong(); buffer = ''; redrawTyping(); drawHud(); }
+    if (buffer && buffer !== stream.plan.name) { errors++; combo = 0; sound.error(); board.flashWrong(); buffer = ''; redrawTyping(); drawHud(); }
     return;
   }
   // Space at the start of a word does nothing.

@@ -96,6 +96,7 @@ function change(fn) {
 const listeners = [];
 globalThis.addEventListener?.('storage', (e) => {
   if (e.key !== null && e.key !== 'cubetype:profiles') return;
+  if (!saved) return; // Memory holds runs storage never got.
   const stored = readStored();
   if (!stored) return;
   data = { active: Object.hasOwn(stored.profiles, data.active) ? data.active : stored.active, profiles: stored.profiles };

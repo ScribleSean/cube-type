@@ -124,3 +124,18 @@ test('a run saved while storage is full stays in this session', async () => {
   profiles.addRecord(run(40));
   assert.deepEqual(profiles.active().records.map((r) => r.time), [30, 40], 'the stale stored copy replaced a run');
 });
+
+test('another tab saving does not wipe runs a failed save left only in memory', async () => {
+  const store = new Map([['cubetype:profiles', JSON.stringify({ active: 'p', profiles: { p: { name: 'sam', records: [] } } })]]);
+  let full = false;
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => { if (full) throw new Error('QuotaExceededError'); store.set(k, v); } };
+  const heard = [];
+  globalThis.addEventListener = (type, fn) => { if (type === 'storage') heard.push(fn); };
+  try {
+    const { profiles } = await import(`../src/profiles.js?case=${n++}`);
+    full = true;
+    profiles.addRecord(run(30));
+    for (const fn of heard) fn({ key: 'cubetype:profiles' });
+    assert.deepEqual(profiles.active().records.map((r) => r.time), [30], 'the other tab\'s copy replaced the unsaved run');
+  } finally { delete globalThis.addEventListener; }
+});
