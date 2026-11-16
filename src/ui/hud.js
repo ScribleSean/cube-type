@@ -17,7 +17,7 @@ export function createHud({ timer: timerEl, label: labelEl, combo: comboEl, wpm:
       labelEl.textContent = label || '';
       comboEl.textContent = combo >= 3 ? `x${combo}` : '';
       comboEl.classList.toggle('hot', combo >= 10);
-      comboEl.style.fontSize = Math.min(1 + combo / 40, 1.6) + 'rem';
+      comboEl.style.transform = `scale(${Math.min(1 + combo / 40, 1.6)})`; // Scale, not font-size: the HUD row keeps its height.
       wpmEl.textContent = wpm === null ? '' : `${Math.round(wpm)} wpm`;
       finesseEl.textContent = finesse === null ? '' : `${Math.round(finesse * 100)}% finesse`;
 

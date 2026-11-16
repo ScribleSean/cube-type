@@ -5,7 +5,7 @@ const fmt = (s) => (s == null ? '–' : s.toFixed(2));
 const pct = (x) => (x == null ? '–' : Math.round(x * 100) + '%');
 const stat = (k, v, small) => `<div class="stat${small ? ' sm' : ''}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
 
-export function createOverlays({ results, resultsBody, statsEl, statsBody, statsButton, getProfile, getAccent }) {
+export function createOverlays({ results, resultsBody, statsEl, statsBody, statsButton, getProfile, getAccent, onAgain }) {
   function line(canvas, points, label, invert) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -54,7 +54,7 @@ export function createOverlays({ results, resultsBody, statsEl, statsBody, stats
           <div class="row">${stat('ao5', fmt(s.sprint.ao5), 1)}${stat('ao12', fmt(s.sprint.ao12), 1)}${stat('best', fmt(s.sprint.best), 1)}</div>`;
       }
       resultsBody.innerHTML = (head ? `<div class="pb">${head}</div>` : '') + body +
-        '<canvas class="graph"></canvas><div class="again"><kbd>enter</kbd> or <kbd>tab</kbd> to go again · <kbd>esc</kbd> to close</div>';
+        '<canvas class="graph"></canvas><div class="again"><button data-act="again"><kbd>enter</kbd> go again</button></div>';
       results.hidden = false;
       line(resultsBody.querySelector('.graph'), samples, 'wpm over time');
     },
@@ -74,10 +74,18 @@ export function createOverlays({ results, resultsBody, statsEl, statsBody, stats
         <div class="row">${stat('zen best', s.zen.bestSolves ?? '–', 1)}${stat('zen solves', s.zen.totalSolves, 1)}${stat('drill best', s.drill.bestRate == null ? '–' : Math.round(s.drill.bestRate) + '/min', 1)}${stat('drill streak', s.drill.bestStreak ?? '–', 1)}</div>
         <canvas class="graph"></canvas>
         <div class="table-wrap"><table><thead><tr><th>mode</th><th>result</th><th>wpm</th><th>acc</th><th>finesse</th><th>date</th></tr></thead><tbody>${recent || '<tr><td colspan="6">no runs yet · finish a sprint to see stats here</td></tr>'}</tbody></table></div>
-        <div class="again"><kbd>esc</kbd> to close</div>`;
+        <div class="again"><button data-act="close"><kbd>esc</kbd> close</button></div>`;
       line(statsBody.querySelector('.graph'), sp.recentTimes, 'last 30 sprint times (s)', true);
     },
   };
   statsButton.addEventListener('click', () => api.toggleStats());
+  // Sheets cover the top bar, and phones have no Escape key: each sheet carries its own way out.
+  results.addEventListener('click', (e) => { if (e.target.closest('[data-act="again"]')) onAgain(); });
+  // Only a press that starts and ends on the backdrop closes it, so a text selection doesn't.
+  let pressedBackdrop = false;
+  statsEl.addEventListener('pointerdown', (e) => { pressedBackdrop = e.target === statsEl; });
+  statsEl.addEventListener('click', (e) => {
+    if ((pressedBackdrop && e.target === statsEl) || e.target.closest('[data-act="close"]')) api.toggleStats(false);
+  });
   return api;
 }

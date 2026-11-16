@@ -34,6 +34,24 @@
   --r: 12px;
   color-scheme: light;
 }
+:root[data-theme="arcade"] {
+  --bg: #0b1020; --bg-alt: #161d33; --sub: #8c96b8; --text: #eaf0ff;
+  --err: #ff5d73; --alt: #b9f76a; --flash: #1a2240; --overlay: rgba(11, 16, 32, .97);
+  --stage-0: #45e0ff; --stage-1: #a78bfa; --stage-2: #ff6fae;
+  --font-ui: 'Space Grotesk', system-ui, sans-serif;
+  --font-words: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --r: 6px;
+  color-scheme: dark;
+}
+:root[data-theme="studio"] {
+  --bg: #f7f8fa; --bg-alt: #e6e9ee; --sub: #59606b; --text: #20262e;
+  --err: #b83030; --alt: #7d5b00; --flash: #edf0f4; --overlay: rgba(247, 248, 250, .97);
+  --stage-0: #1f63c4; --stage-1: #18704a; --stage-2: #b53333;
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-words: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --r: 10px;
+  color-scheme: light;
+}
 :root {
   --main: var(--stage-0);
   --gutter-l: max(16px, env(safe-area-inset-left, 0px));
@@ -47,8 +65,8 @@ body {
   display: flex; flex-direction: column; align-items: center;
   background: var(--bg); color: var(--text);
   font-family: var(--font-ui);
-  transition: background .25s;
 }
+body.ready { transition: background .25s; }
 body.flash { background: var(--flash); transition: none; }
 #inp { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; font-size: 16px; border: 0; padding: 0; }
 button { font: inherit; }
@@ -61,6 +79,7 @@ header {
 }
 .logo { font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; }
 .logo span { color: var(--main); }
+.logo .mark { width: 1.2em; height: 1.2em; vertical-align: -.22em; margin-right: .35em; }
 nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px; margin-left: auto; }
 nav button {
   flex: none; background: none; border: 0; color: var(--sub); font-size: .82rem;
@@ -83,7 +102,8 @@ main {
 #hud { flex: none; display: flex; gap: 20px; align-items: baseline; color: var(--main); font-size: 1.6rem; min-height: 2.2rem; font-variant-numeric: tabular-nums; }
 #hud .small { font-size: .85rem; color: var(--sub); }
 #phase { font-size: .85rem; letter-spacing: .12em; color: var(--sub); text-transform: uppercase; }
-#combo { font-size: 1rem; color: var(--sub); transition: color .1s, text-shadow .1s; }
+#combo:not(:empty) { margin-right: 1.8ch; } /* Room for its scale-up, which takes no layout space. */
+#combo { display: inline-block; font-size: 1rem; color: var(--sub); transform-origin: left bottom; transition: color .1s, text-shadow .1s, transform .1s; }
 #combo.hot { color: var(--main); text-shadow: 0 0 12px color-mix(in srgb, var(--main) 55%, transparent); }
 .errflash { color: var(--err) !important; }
 #banner { flex: none; color: var(--sub); font-size: .82rem; min-height: 1.2rem; text-align: center; }
@@ -265,7 +285,7 @@ footer { flex: none; color: var(--sub); font-size: .7rem; padding: 4px var(--gut
 .ob-opt.on { box-shadow: inset 0 0 0 1px var(--main); }
 .ob-swatch { display: inline-flex; gap: 2px; margin-right: 8px; vertical-align: -1px; }
 .ob-swatch i { width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(127, 127, 127, .35); }
-.ob-theme .ob-opts { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.ob-theme .ob-opts { grid-template-columns: repeat(auto-fit, minmax(max(140px, 30%), 1fr)); }
 .ob-opt.on b { color: var(--main); }
 .ob-modes { display: flex; flex-direction: column; gap: 8px; }
 .ob-mode:hover b, .ob-mode:focus-visible b { color: var(--main); }
@@ -274,7 +294,7 @@ footer { flex: none; color: var(--sub); font-size: .7rem; padding: 4px var(--gut
 .ob-nav .ob-primary { color: var(--bg); background: var(--main); font-weight: 500; }
 
 .overlay {
-  position: fixed; inset: 0; z-index: 10; background: var(--overlay);
+  position: fixed; inset: 0 0 auto; height: var(--app-h, 100dvh); z-index: 10; background: var(--overlay);
   display: flex; align-items: center; justify-content: center; overflow-y: auto;
   padding: calc(env(safe-area-inset-top, 0px) + 16px) var(--gutter-r) 16px var(--gutter-l);
   animation: fresh .2s ease-out;
@@ -288,18 +308,28 @@ footer { flex: none; color: var(--sub); font-size: .7rem; padding: 4px var(--gut
 .stat.sm .v { font-size: 1.5rem; color: var(--text); }
 .pb { color: var(--main); font-size: .9rem; letter-spacing: .1em; margin-bottom: 8px; }
 .graph { width: 100%; height: 150px; display: block; margin-top: 8px; }
-.again { color: var(--sub); font-size: .82rem; margin-top: 16px; }
+.again { margin-top: 16px; }
+.again button { background: var(--bg-alt); border: 0; color: var(--text); font-size: .85rem; padding: 8px 14px; border-radius: var(--r); cursor: pointer; }
+.again button:hover { color: var(--main); }
+.again kbd { background: var(--bg); margin-right: 6px; }
 .table-wrap { overflow-x: auto; margin-top: 12px; }
 table { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; }
 th { text-align: left; color: var(--sub); font-weight: 400; padding: 4px 8px 6px 0; }
 td { padding: 5px 8px 5px 0; border-top: 1px solid var(--bg-alt); white-space: nowrap; }
 
-@media (max-width: 640px) {
+/* Narrow phones and short touch screens (a phone on its side, a keyboard open) get a one-row header that scrolls sideways. */
+@media (max-width: 640px), (max-height: 500px) and (pointer: coarse) {
   header { gap: 10px; padding-top: calc(env(safe-area-inset-top, 0px) + 10px); }
   .logo { font-size: 1.1rem; }
   nav { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
   nav::-webkit-scrollbar { display: none; }
+  nav.more { mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
   nav button { font-size: .75rem; padding: 6px 7px; }
+}
+@media (max-height: 500px) and (pointer: coarse) {
+  header { padding-top: calc(env(safe-area-inset-top, 0px) + 4px); padding-bottom: 2px; }
+}
+@media (max-width: 640px) {
   #hud { font-size: 1.25rem; gap: 12px; min-height: 1.8rem; }
   #scr, footer { display: none; }
   #banner { font-size: .72rem; }

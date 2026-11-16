@@ -1,19 +1,23 @@
 import { escapeHtml } from '../html.js';
 
-const THEME_SWATCHES = {
+export const THEME_SWATCHES = {
   soft: ['#2b2d31', '#ecebe6', '#8ccaf2', '#f4c859', '#ff9470'],
   frost: ['#2e3440', '#eceff4', '#88c0d0', '#ebcb8b', '#e8997a'],
   daylight: ['#f3f4f6', '#23272e', '#1f68a8', '#8a5e00', '#b63e1c'],
   classic: ['#323437', '#d1d0c5', '#7fb4d9', '#e2b714', '#f2734a'],
+  arcade: ['#0b1020', '#eaf0ff', '#45e0ff', '#a78bfa', '#ff6fae'],
+  studio: ['#f7f8fa', '#20262e', '#1f63c4', '#18704a', '#b53333'],
 };
 const swatch = (theme) => `<span class="ob-swatch">${THEME_SWATCHES[theme].map((c) => `<i style="background:${c}"></i>`).join('')}</span>`;
 
-const CHOICES = [
+export const CHOICES = [
   { key: 'theme', title: 'look', options: [
     { value: 'soft', label: 'soft', note: 'warm dark' },
     { value: 'frost', label: 'frost', note: 'cool blue-grey' },
     { value: 'daylight', label: 'daylight', note: 'light, for bright rooms' },
-    { value: 'classic', label: 'classic', note: 'the original Monkeytype look' }] },
+    { value: 'classic', label: 'classic', note: 'the original Monkeytype look' },
+    { value: 'arcade', label: 'arcade', note: 'deep navy, bright stage colors' },
+    { value: 'studio', label: 'studio', note: 'light, sticker colors' }] },
   { key: 'layout', title: 'board', options: [
     { value: 'full', label: 'full', note: 'every word is always on screen' },
     { value: 'focus', label: 'focus', note: 'type a face letter and only its words appear' }] },
@@ -33,7 +37,7 @@ const MODES = [
   { mode: 'zen', title: 'zen', note: 'cubes keep coming until you press esc.' },
 ];
 
-export function createOnboarding({ root, profiles, onDone, onSetting }) {
+export function createOnboarding({ root, profiles, onDone, onSetting, onClose }) {
   let step = 0;
   const steps = [welcome, setup, pickMode];
 
@@ -88,6 +92,8 @@ export function createOnboarding({ root, profiles, onDone, onSetting }) {
 
   root.addEventListener('keydown', (e) => {
     e.stopPropagation(); // Keep typing here out of the game.
+    // A replay can be left; the first run has to pick a mode.
+    if (e.key === 'Escape' && profiles.active().onboarded) { root.hidden = true; if (onClose) onClose(); return; }
     if (e.key === 'Enter' && e.target.id === 'ob-name') { e.preventDefault(); go('next'); }
   });
   root.addEventListener('click', (e) => {

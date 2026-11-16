@@ -47,7 +47,7 @@ export function createProfilePanel({ panel, button, list, form, input, profiles,
         const inp = row.querySelector('input');
         inp.value = p.name;
         setTimeout(() => inp.focus(), 0);
-        const save = () => { profiles.rename(p.id, inp.value); renaming = null; onChange(); draw(); };
+        const save = () => { profiles.rename(p.id, inp.value); renaming = null; draw(); };
         inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') save(); if (e.key === 'Escape') { renaming = null; draw(); } });
         row.querySelector('[data-act="save"]').addEventListener('click', save);
       } else if (confirming === p.id) {
@@ -59,7 +59,7 @@ export function createProfilePanel({ panel, button, list, form, input, profiles,
         row.innerHTML = `<button class="pname" data-act="pick">${escapeHtml(p.name)} <span>${solves} solves</span></button>
           <button data-act="rename" aria-label="rename ${escapeHtml(p.name)}">rename</button>
           ${profiles.list().length > 1 ? `<button data-act="delete" aria-label="delete ${escapeHtml(p.name)}">delete</button>` : ''}`;
-        row.querySelector('[data-act="pick"]').addEventListener('click', () => { profiles.select(p.id); onChange(); draw(); });
+        row.querySelector('[data-act="pick"]').addEventListener('click', () => { if (p.id !== active.id) { profiles.select(p.id); onChange(); } draw(); });
         row.querySelector('[data-act="rename"]').addEventListener('click', () => { renaming = p.id; draw(); });
         const del = row.querySelector('[data-act="delete"]');
         if (del) del.addEventListener('click', () => { confirming = p.id; draw(); });
@@ -77,7 +77,9 @@ export function createProfilePanel({ panel, button, list, form, input, profiles,
     draw();
   });
   draw();
-  return popover(panel, button, draw, draw);
+  // Another tab's save must not wipe a name being typed or a pending delete.
+  const redraw = () => { if (renaming || confirming) button.textContent = button.title = profiles.active().name; else draw(); };
+  return popover(panel, button, draw, redraw);
 }
 
 function popover(panel, button, onOpen, redraw) {

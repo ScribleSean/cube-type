@@ -18,3 +18,11 @@ test('no source file defines its own HTML escaper', () => {
   const offenders = files('src').filter((f) => f !== join('src', 'html.js') && escaper.test(readFileSync(f, 'utf8')));
   assert.deepEqual(offenders, [], `import { escapeHtml } from src/html.js instead of escaping by hand in: ${offenders.join(', ')}`);
 });
+
+// Full-screen sheets end where the visible viewport ends, so a phone keyboard
+// cannot hide their bottom (or a focused field in them) without a way to scroll to it.
+test('overlays fit the visible viewport, not the layout viewport', () => {
+  const rule = readFileSync('styles.css', 'utf8').match(/\n\.overlay \{([^}]*)\}/)[1];
+  assert.match(rule, /height: var\(--app-h, 100dvh\)/);
+  assert.doesNotMatch(rule, /inset: 0;/);
+});

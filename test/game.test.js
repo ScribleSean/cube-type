@@ -135,3 +135,48 @@ test('held arrow on a nav button does not rotate the cube', () => {
   g.key('ArrowLeft', { repeat: true });
   assert.equal(g.run('rotations'), 0);
 });
+
+test('a phone keyboard opening keeps the typed word or the focused field in view', () => {
+  const g = game();
+  g.node('#inp').focus();
+  g.resize();
+  assert.equal(g.node('#echo').scrolledTo?.block, 'nearest', 'typed word left under the keyboard');
+  g.node('#pname').focus();
+  g.resize();
+  assert.equal(g.node('#pname').scrolledTo?.block, 'center', 'focused field left under the keyboard');
+});
+
+test('typing a word does not pull the board back to the typing line', () => {
+  const g = game();
+  g.node('#inp').focus();
+  g.input('red');
+  g.key('Enter');
+  assert.equal(g.node('#echo').scrolledTo, undefined, 'a move scrolled the board');
+});
+
+test('letters typed while the intro is open do not reach the game', () => {
+  const g = game();
+  g.onboarding.open = true;
+  g.input('red');
+  assert.equal(g.run('t0'), null, 'the clock started behind the intro');
+  assert.equal(g.run('buffer'), '');
+});
+
+test('tapping the running zen or drill finishes it; other taps start fresh', () => {
+  const g = game();
+  g.run("mode = 'zen'; newGame(); t0 = performance.now()");
+  g.run("pickMode('zen')");
+  assert.equal(g.results, 1);
+  assert.equal(g.run('over'), true);
+  g.run("pickMode('sprint')");
+  assert.equal(g.run('mode'), 'sprint');
+  assert.equal(g.run('over'), false);
+  g.run("pickMode('sprint')");
+  assert.equal(g.results, 1, 'tapping sprint showed results');
+});
+
+test('a finished alg line leaves nothing for Enter to repeat', () => {
+  const g = game();
+  g.run("stream = { words: ['red'], notation: ['R'], i: 0, slips: {}, plan: {} }; buffer = 'red'; lastMove = 'U'; nextStreamWord()");
+  assert.equal(g.run('lastMove'), null);
+});

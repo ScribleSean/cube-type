@@ -3,7 +3,8 @@ import { makeContext } from './picker.js';
 import { createFinesse } from './finesse.js';
 import { createDrill } from './drill.js';
 import * as Typing from './typing.js';
-import { profiles } from './profiles.js';
+import { profiles, THEMES } from './profiles.js';
+import { logoFromUrl, markSvg, faviconUrl } from './brand.js';
 import { createSound } from './sound.js';
 import { createScene } from './scene.js';
 import { createBoard } from './ui/board.js';
@@ -17,7 +18,6 @@ import { keyRoute, isControl, clickReturnsFocus } from './keys.js';
 
 const $ = (s) => document.querySelector(s);
 const PHASES = ['cross', 'f2l', 'oll', 'pll', 'done'];
-const THEMES = ['classic', 'soft', 'frost', 'daylight'];
 const stageColor = (i) => getComputedStyle(document.documentElement).getPropertyValue(`--stage-${Math.min(i, 2)}`).trim();
 const MOVE_INFO = {
   R: 'right face', L: 'left face', U: 'top face', D: 'bottom face', F: 'front face', B: 'back face',
@@ -73,19 +73,22 @@ const hud = createHud({
 const overlays = createOverlays({
   results: $('#results'), resultsBody: $('#res'), statsEl: $('#stats'), statsBody: $('#stats-body'), statsButton: $('#btn-stats'),
   getProfile: () => profiles.active(), getAccent: () => accent,
+  onAgain: () => { newGame(); input.focus(); },
 });
 const viewPanel = createViewPanel({
   panel: $('#viewpanel'), button: $('#btn-view'), grid: $('#vgrid'), tabs: $('#vtabs'), mirrorRow: $('#vmirror'), hint: $('#vhint'),
   getSettings: settings, drawThumbs: (c) => scene.drawThumbs(c),
   onChange: (patch, message) => { for (const k in patch) profiles.setting(k, patch[k]); applyView(); viewPanel.redraw(); hud.toast(message); },
 });
+function profileChanged() { shownProfile = profiles.active().id; applyTheme(); drawToggles(); applyView(); newGame(); if (!profiles.active().onboarded) onboarding.start(); }
 const profilePanel = createProfilePanel({
   panel: $('#profilepanel'), button: $('#btn-profile'), list: $('#plist'), form: $('#pform'), input: $('#pname'), profiles,
-  onChange: () => { applyTheme(); drawToggles(); applyView(); newGame(); if (!profiles.active().onboarded) onboarding.start(); },
+  onChange: profileChanged,
 });
 const onboarding = createOnboarding({
   root: $('#onboarding'), profiles,
   onSetting: (key) => { if (key === 'theme') applyTheme(); },
+  onClose: () => { drawToggles(); profilePanel.redraw(); refresh(true); input.focus(); },
   onDone: (m) => { mode = m; profilePanel.redraw(); applyTheme(); drawToggles(); newGame(); input.focus(); },
 });
 $('#btn-intro').addEventListener('click', () => { profilePanel.toggle(false); onboarding.start(); });
@@ -130,15 +133,16 @@ function newGame() {
   overlays.hideResults();
   document.body.classList.toggle('drill', mode === 'drill');
   document.querySelectorAll('nav [data-mode]').forEach((b) => b.classList.toggle('on', b.dataset.mode === mode));
+  navFade(); // Drill shows a different set of buttons.
   if (mode === 'drill') {
     drill = createDrill(settings().drillSet);
     $('#scr').textContent = '';
-    $('#banner').textContent = 'type the word for each move · esc to finish';
+    $('#banner').textContent = 'type the word for each move · esc or tap drill to finish';
     setPosition([], true);
     scheduleHint();
     return;
   }
-  $('#banner').textContent = mode === 'zen' ? 'zen · cubes keep coming · esc when you are done' : '';
+  $('#banner').textContent = mode === 'zen' ? 'zen · cubes keep coming · esc or tap zen when you are done' : '';
   loadScramble(true);
 }
 
@@ -336,12 +340,15 @@ function nextStreamWord() {
   }
   doMove(stream.notation[stream.i++]);
   if (clean) wordDone(want === REPEAT ? '' : want); else buffer = '';
-  if (stream.i >= stream.words.length) { stream = null; finesse.reset(); afterMove(); } else refresh(false);
+  if (stream.i >= stream.words.length) { stream = null; lastMove = null; finesse.reset(); afterMove(); } else {
+    refresh(false);
+    if (document.activeElement === input) $('#stream').scrollIntoView({ block: 'nearest' }); // A wrapped line can drop under a phone keyboard.
+  }
 }
 
 function streamSpace() {
   if (stream.naming) {
-    if (buffer && buffer !== stream.plan.name) error();
+    if (buffer && buffer !== stream.plan.name) { combo = 0; sound.error(); board.flashWrong(); buffer = ''; redrawTyping(); drawHud(); }
     return;
   }
   // Space at the start of a word does nothing.
@@ -379,7 +386,7 @@ function submit() {
 }
 
 function handleChar(ch) {
-  if (over || locked || overlays.statsOpen) return;
+  if (over || locked || overlays.statsOpen || onboarding.open) return;
   if (ch === ' ') return stream ? streamSpace() : buffer ? submit() : undefined;
   if (ch === '\n') return submit();
   if (!/^[a-z]$/.test(ch)) return;
@@ -468,7 +475,7 @@ $('nav').addEventListener('click', (e) => {
   if (b && clickReturnsFocus(b, e.detail)) b.blur(); // Not input.focus(): that opens a phone's keyboard.
 });
 document.addEventListener('pointerup', (e) => {
-  if (popovers.some((p) => p.contains(e.target)) || e.target.closest('#stats, button, input')) return;
+  if (popovers.some((p) => p.contains(e.target)) || e.target.closest('#stats, #onboarding, button, input')) return;
   input.focus();
 });
 
@@ -525,9 +532,14 @@ const toggles = {
   drillSet: { el: $('#btn-drillset'), text: (v) => (v === 'all' ? 'drill: all moves' : 'drill: faces'), next: (v) => (v === 'all' ? 'faces' : 'all'), restart: true },
   names: { el: $('#btn-names'), text: (v) => (v ? 'case names: on' : 'case names: off'), next: (v) => !v },
 };
+const logo = logoFromUrl(location.search);
+if (logo !== 'text') $('.logo').insertAdjacentHTML('afterbegin', markSvg(logo));
 function applyTheme() {
   document.documentElement.dataset.theme = settings().theme;
-  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  const css = getComputedStyle(document.documentElement);
+  document.querySelector('meta[name="theme-color"]').content = css.getPropertyValue('--bg').trim();
+  const icon = faviconUrl(logo, (v) => css.getPropertyValue(`--${v}`).trim());
+  if (icon) document.querySelector('link[rel="icon"]').href = icon;
 }
 
 function drawToggles() {
@@ -536,6 +548,7 @@ function drawToggles() {
     t.el.textContent = t.text(v);
     t.el.classList.toggle('on', ['words', 'layout', 'drillSet', 'theme'].includes(key) || !!v);
   }
+  navFade();
 }
 for (const [key, t] of Object.entries(toggles)) {
   t.el.addEventListener('click', () => {
@@ -547,18 +560,47 @@ for (const [key, t] of Object.entries(toggles)) {
     if (t.apply) { applyTheme(); refresh(false); }
   });
 }
-document.querySelectorAll('nav [data-mode]').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.mode; newGame(); }));
+// Phones have no Escape key: tapping the running zen or drill finishes it the same way.
+function pickMode(m) {
+  if (m === mode && t0 && !over && (mode === 'zen' || mode === 'drill')) return mode === 'zen' ? stopZen() : stopDrill();
+  mode = m;
+  newGame();
+}
+document.querySelectorAll('nav [data-mode]').forEach((b) => b.addEventListener('click', () => pickMode(b.dataset.mode)));
 
 // The visible viewport shrinks when a phone keyboard opens.
 function fitViewport() {
   const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
   document.documentElement.style.setProperty('--app-h', h + 'px');
   window.scrollTo(0, 0);
+  keepTypingInView();
+  navFade();
+}
+// On a phone the top bar scrolls sideways; fade its edge while more buttons are off-screen.
+const nav = $('nav');
+function navFade() { nav.classList.toggle('more', nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1); }
+nav.addEventListener('scroll', navFade);
+// Button labels change width (a rename, late fonts) without a scroll or resize.
+if (globalThis.ResizeObserver) { const ro = new ResizeObserver(navFade); nav.querySelectorAll('button').forEach((b) => ro.observe(b)); }
+// On a short screen the board scrolls; keep what is being typed above the keyboard.
+function keepTypingInView() {
+  const field = document.activeElement;
+  if (field === input) $(stream ? '#stream' : '#echo').scrollIntoView({ block: 'nearest' });
+  else if (field && field.matches('input')) field.scrollIntoView({ block: 'center' });
 }
 (window.visualViewport || window).addEventListener('resize', fitViewport);
 fitViewport();
 
+// Another tab saved: show its profile changes here without restarting this game.
+let shownProfile = profiles.active().id;
+profiles.onExternalChange(() => {
+  profilePanel.redraw();
+  // This tab's profile was deleted there: switch like picking a profile here would.
+  if (profiles.active().id !== shownProfile) return profileChanged();
+  applyTheme(); drawToggles(); applyView();
+});
 applyTheme();
+setTimeout(() => document.body.classList.add('ready'), 0); // Theme changes fade; the first paint doesn't.
 drawToggles();
 finesse = createFinesse();
 applyView();

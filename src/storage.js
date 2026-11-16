@@ -11,5 +11,5 @@ export function load(key, fallback) {
 }
 
 export function save(key, value) {
-  try { localStorage.setItem(PREFIX + key, JSON.stringify(value)); } catch {}
+  try { localStorage.setItem(PREFIX + key, JSON.stringify(value)); return true; } catch { return false; }
 }

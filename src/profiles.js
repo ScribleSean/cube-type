@@ -3,11 +3,12 @@ import { load, save } from './storage.js';
 export const DEFAULT_SETTINGS = {
   sound: true, names: false, words: 'steady', layout: 'full', view: 'UFR', mirror: 'auto', drillSet: 'faces', theme: 'soft',
 };
+export const THEMES = ['classic', 'soft', 'frost', 'daylight', 'arcade', 'studio'];
 const VIEWS = ['UFR', 'UFL', 'UBR', 'UBL', 'DFR', 'DFL', 'DBR', 'DBL'];
 const SETTING_VALUES = {
   sound: [true, false], names: [true, false], words: ['steady', 'flux'], layout: ['full', 'focus'],
   view: VIEWS, mirror: ['auto', 'off', ...VIEWS], drillSet: ['faces', 'all'],
-  theme: ['classic', 'soft', 'frost', 'daylight'],
+  theme: THEMES,
 };
 function parseSettings(raw) {
   return Object.fromEntries(Object.entries(DEFAULT_SETTINGS).map(([key, fallback]) =>
@@ -56,42 +57,74 @@ function parseProfile(id, p) {
   };
 }
 
-let data = load('profiles', null);
-const parsed = Object.create(null);
-if (isObject(data) && isObject(data.profiles)) {
-  for (const [id, raw] of Object.entries(data.profiles)) {
-    const p = parseProfile(id, raw);
-    if (p) parsed[id] = p;
+// Parsed profiles from storage, or null when nothing usable is stored.
+function readStored() {
+  const raw = load('profiles', null);
+  const parsed = Object.create(null);
+  if (isObject(raw) && isObject(raw.profiles)) {
+    for (const [id, p] of Object.entries(raw.profiles)) {
+      const profile = parseProfile(id, p);
+      if (profile) parsed[id] = profile;
+    }
   }
+  if (!Object.keys(parsed).length) return null;
+  const active = isObject(raw) ? raw.active : undefined;
+  return { active: typeof active === 'string' && Object.hasOwn(parsed, active) ? active : Object.keys(parsed)[0], profiles: parsed };
 }
-if (!Object.keys(parsed).length) {
+
+let data = readStored();
+if (!data) {
   const first = newProfile('player');
-  parsed[first.id] = first;
+  data = { active: first.id, profiles: { [first.id]: first } };
 }
-const storedActive = isObject(data) ? data.active : undefined;
-data = { active: typeof storedActive === 'string' && Object.hasOwn(parsed, storedActive) ? storedActive : Object.keys(parsed)[0], profiles: parsed };
-const persist = () => save('profiles', data);
+// After a failed save (storage full or blocked) memory is newer than storage, so don't re-read it.
+let saved = true;
+const persist = () => { saved = save('profiles', data); };
 persist();
+
+// Another tab may have saved since this one loaded. Every change starts from what is
+// stored now, so two open tabs add to each other's runs instead of overwriting them.
+// The tab keeps its own active profile unless the other tab deleted it.
+function change(fn) {
+  const stored = saved ? readStored() : null;
+  if (stored) data = { active: Object.hasOwn(stored.profiles, data.active) ? data.active : stored.active, profiles: stored.profiles };
+  const result = fn();
+  persist();
+  return result;
+}
+
+const listeners = [];
+globalThis.addEventListener?.('storage', (e) => {
+  if (e.key !== null && e.key !== 'cubetype:profiles') return;
+  const stored = readStored();
+  if (!stored) return;
+  data = { active: Object.hasOwn(stored.profiles, data.active) ? data.active : stored.active, profiles: stored.profiles };
+  for (const fn of listeners) fn();
+});
 
 export const profiles = {
   list: () => Object.values(data.profiles).sort((a, b) => a.created - b.created),
   active: () => data.profiles[data.active],
-  select(id) { if (data.profiles[id]) { data.active = id; persist(); } },
-  create(name) { const p = newProfile(name); data.profiles[p.id] = p; data.active = p.id; persist(); return p; },
-  rename(id, name) { if (data.profiles[id]) { data.profiles[id].name = cleanName(name); persist(); } },
+  // Runs after another tab saves; the in-memory profiles are already fresh.
+  onExternalChange(fn) { listeners.push(fn); },
+  select(id) { change(() => { if (data.profiles[id]) data.active = id; }); },
+  create(name) { return change(() => { const p = newProfile(name); data.profiles[p.id] = p; data.active = p.id; return p; }); },
+  rename(id, name) { change(() => { if (data.profiles[id]) data.profiles[id].name = cleanName(name); }); },
   remove(id) {
-    if (Object.keys(data.profiles).length <= 1 || !data.profiles[id]) return false;
-    delete data.profiles[id];
-    if (data.active === id) data.active = profiles.list()[0].id;
-    persist();
-    return true;
+    return change(() => {
+      if (Object.keys(data.profiles).length <= 1 || !data.profiles[id]) return false;
+      delete data.profiles[id];
+      if (data.active === id) data.active = profiles.list()[0].id;
+      return true;
+    });
   },
-  setting(key, value) { profiles.active().settings[key] = value; persist(); },
-  markOnboarded(done = true) { profiles.active().onboarded = done; persist(); },
+  setting(key, value) { change(() => { profiles.active().settings[key] = value; }); },
+  markOnboarded(done = true) { change(() => { profiles.active().onboarded = done; }); },
   addRecord(record) {
-    const recs = profiles.active().records;
-    recs.push({ ...record, at: Date.now() });
-    if (recs.length > HISTORY_LIMIT) recs.splice(0, recs.length - HISTORY_LIMIT);
-    persist();
+    change(() => {
+      const recs = profiles.active().records;
+      recs.push({ ...record, at: Date.now() });
+      if (recs.length > HISTORY_LIMIT) recs.splice(0, recs.length - HISTORY_LIMIT);
+    });
   },
 };

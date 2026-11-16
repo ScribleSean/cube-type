@@ -69,3 +69,58 @@ test('incomplete and out-of-range records are discarded per mode', async () => {
   const p = await loadWith({ active: 'a', profiles: { a: { records: [...bad, sprint, zen, drill] } } });
   assert.deepEqual(p.active().records, [sprint, zen, drill]);
 });
+
+// Two tabs share one localStorage; each loads its own copy of profiles.js.
+async function twoTabs(blob) {
+  const store = new Map([['cubetype:profiles', JSON.stringify(blob)]]);
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
+  const a = (await import(`../src/profiles.js?case=${n++}`)).profiles;
+  const b = (await import(`../src/profiles.js?case=${n++}`)).profiles;
+  return { a, b, stored: () => JSON.parse(store.get('cubetype:profiles')) };
+}
+const run = (time) => ({ mode: 'sprint', time, wpm: 50, acc: 1, finesse: 1, faults: 0, turns: 20 });
+
+test('two open tabs keep each other\'s runs, settings and profiles', async () => {
+  const { a, b, stored } = await twoTabs({ active: 'p', profiles: { p: { name: 'sam', records: [] } } });
+  a.addRecord(run(30));
+  b.addRecord(run(40));
+  assert.deepEqual(stored().profiles.p.records.map((r) => r.time), [30, 40]);
+  b.setting('theme', 'frost');
+  a.addRecord(run(50));
+  assert.equal(stored().profiles.p.settings.theme, 'frost', 'tab A put back its old theme');
+  assert.equal(stored().profiles.p.records.length, 3);
+  const q = b.create('kim');
+  a.rename('p', 'sammy');
+  assert.deepEqual(Object.values(stored().profiles).map((p) => p.name).sort(), ['kim', 'sammy']);
+  assert.equal(a.active().id, 'p', 'tab A followed tab B to its new profile');
+  assert.equal(b.active().id, q.id);
+});
+
+test('a tab whose profile was deleted elsewhere falls back to one that exists', async () => {
+  const { a, b, stored } = await twoTabs({ active: 'p', profiles: { p: { name: 'sam', created: 1 }, q: { name: 'kim', created: 2 } } });
+  b.select('q');
+  b.remove('p');
+  a.addRecord(run(30));
+  assert.equal(stored().profiles.p, undefined, 'tab A brought the deleted profile back');
+  assert.equal(a.active().id, 'q');
+});
+
+test('with storage blocked, changes still apply in memory', async () => {
+  globalThis.localStorage = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } };
+  const { profiles } = await import(`../src/profiles.js?case=${n++}`);
+  profiles.setting('theme', 'arcade');
+  profiles.addRecord(run(30));
+  assert.equal(profiles.active().settings.theme, 'arcade');
+  assert.equal(profiles.active().records.length, 1);
+});
+
+test('a run saved while storage is full stays in this session', async () => {
+  const store = new Map([['cubetype:profiles', JSON.stringify({ active: 'p', profiles: { p: { name: 'sam', records: [] } } })]]);
+  let full = false;
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => { if (full) throw new Error('QuotaExceededError'); store.set(k, v); } };
+  const { profiles } = await import(`../src/profiles.js?case=${n++}`);
+  full = true;
+  profiles.addRecord(run(30));
+  profiles.addRecord(run(40));
+  assert.deepEqual(profiles.active().records.map((r) => r.time), [30, 40], 'the stale stored copy replaced a run');
+});

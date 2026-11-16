@@ -9,8 +9,13 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23323437'/%3E%3Crect x='6' y='6' width='9' height='9' rx='2' fill='%23e2b714'/%3E%3Crect x='17' y='6' width='9' height='9' rx='2' fill='%237fb4d9'/%3E%3Crect x='6' y='17' width='9' height='9' rx='2' fill='%23f2734a'/%3E%3Crect x='17' y='17' width='9' height='9' rx='2' fill='%23d1d0c5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=JetBrains+Mono:wght@400;500;700&family=Lexend:wght@400;500;700&family=Nunito:wght@400;600;800&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500;700&family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Lexend:wght@400;500;700&family=Nunito:wght@400;600;800&family=Roboto+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script>
+// Paint the saved theme first, so a light theme doesn't fade in from the dark default.
+try { const d = JSON.parse(localStorage.getItem('cubetype:profiles')); document.documentElement.dataset.theme = d.profiles[d.active].settings.theme; }
+catch { document.documentElement.dataset.theme = 'soft'; }
+</script>
 </head>
 <body>
 <input id="inp" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="type here">
