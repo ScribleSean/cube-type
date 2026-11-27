@@ -4,7 +4,7 @@
   "description": "Solve a Rubik's cube by typing words.",
   "start_url": "./",
   "scope": "./",
-  "display": "standalone",
+  "display": "browser",
   "background_color": "#2b2d31",
   "theme_color": "#2b2d31",
   "icons": [
