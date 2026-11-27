@@ -539,7 +539,7 @@ function applyTheme() {
   const css = getComputedStyle(document.documentElement);
   document.querySelector('meta[name="theme-color"]').content = css.getPropertyValue('--bg').trim();
   const icon = faviconUrl(logo, (v) => css.getPropertyValue(`--${v}`).trim());
-  if (icon) document.querySelector('link[rel="icon"]').href = icon;
+  if (icon) document.querySelector('link[rel="icon"][type="image/svg+xml"]').href = icon;
 }
 
 function drawToggles() {
