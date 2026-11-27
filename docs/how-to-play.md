@@ -53,12 +53,21 @@ half of a double shows as ⏎. In an algorithm line, enter does the same as spac
 If you break a finished stage on purpose, for example opening the cross to insert a pair, the stage
 shows `!` until you restore it. Nothing else changes.
 
+## Sprint and zen
+
+Sprint is one timed solve. The clock starts on your first key. When the cube is solved you see your time,
+WPM, accuracy, finesse, the split for each stage, and your ao5, ao12 and best.
+
+Zen gives you a new scramble each time you solve, until you press esc (or tap **zen** on a phone). Its
+results show your time, solves, average per solve, WPM, accuracy and finesse. The board uses calm words
+the whole time.
+
 ## Drill
 
 Drill shows one move at a time in big notation, like `R'`, with what it means underneath. Type that
 move's word on the board and the next move appears. The word lights up only if you take longer than
-1.5 seconds to find it. Drill never asks for the same move twice in a row, or for the move that
-undoes the last one. Press esc to see moves per minute, accuracy and your best streak.
+1.5 seconds to find it. Drill doesn't ask for the same move twice in a row, or for the move that
+undoes the last one. Press esc (or tap **drill**) to see moves per minute, accuracy and your best streak.
 
 The **drill** setting picks the moves: **faces** (R L U D F B) or **all moves** (plus M E S and x y z).
 
@@ -79,7 +88,7 @@ The small corner view is the **mirror**. Set it separately: the opposite corner 
 | board | **full**: every word is visible. **focus**: type a face letter to show that face's words. |
 | case names | **on**: type the OLL/PLL case name (`sune`, `tperm`) before its algorithm. **off** (default): just the algorithm. |
 | sound | Key clicks, a rising note for each clean word, and a chord when you solve. |
-| theme | **soft** (default), **frost**, **daylight** (light) or **classic** (the original Monkeytype look). |
+| theme | **soft** (default), **frost**, **classic** (the original Monkeytype look), **arcade**, and two light themes: **daylight** and **studio**. |
 
 Each profile keeps its own settings. The bar shows only the settings that apply to the current mode: drill has its own move setting, and words, board and case names appear in sprint and zen.
 

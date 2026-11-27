@@ -9,7 +9,7 @@ is three.js r128 (MIT), copied from cdnjs. Its sha512 matches the SRI hash that 
 python3 -m http.server 5178
 ```
 
-Open http://localhost:5178. Modules don't load from `file://`, so use a server.
+Open http://localhost:5178. Modules don't load from `file://`, so use a server. `npm start` runs the same command.
 
 ## Test
 
@@ -17,8 +17,9 @@ Open http://localhost:5178. Modules don't load from `file://`, so use a server.
 npm test
 ```
 
-This runs `node --test` on the logic modules: cube moves, the last-layer planner, the player frame,
-finesse, stats, drill, typing and the word picker. It needs Node 20 or newer.
+This runs `node --test` on `test/*.test.js`: cube moves, the last-layer planner, the player frame,
+finesse, stats, drill, typing, keys, profiles, the word picker and word pools, plus the game flow,
+intro, overlays and word line with stubbed DOM objects.
 
 ## Layout
 
@@ -32,18 +33,20 @@ finesse, stats, drill, typing and the word picker. It needs Node 20 or newer.
 | `src/stats.js` | Best, ao5, ao12, means |
 | `src/profiles.js` | Profiles, settings and history in localStorage; parses what it loads |
 | `src/html.js` | The one HTML escaper (`escapeHtml`) |
-| `src/storage.js` | localStorage that never throws |
+| `src/storage.js` | localStorage reads and writes that catch errors |
+| `src/keys.js` | Where a key press goes: the game, the menu bar or the browser |
+| `src/brand.js` | Logo marks and the favicon (`?logo=cube`, `caret` or `turn` previews one) |
 | `src/drill.js` | Drill move picker |
 | `src/sound.js` | Synthesized sounds |
 | `src/scene.js` | three.js cube, animation, arrows, cameras, swipes |
-| `src/ui/*.js` | Board, word stream, HUD, panels, overlays |
+| `src/ui/*.js` | Board, word stream, typed-word echo, HUD, panels, overlays, intro |
 | `src/game.js` | Modes, typing and flow; the entry point |
 
 The logic modules (`cube`, `picker`, `finesse`, `stats`, `typing`) don't touch the DOM, so they run under Node.
 
 ## How the cube model works
 
-The cube is 54 stickers. Each has a position (a cubie at −1, 0 or 1 on each axis), an outward normal and a
+The cube is 54 stickers. Each has a position (a cubie at -1, 0 or 1 on each axis), an outward normal and a
 color. A move picks the stickers in its layer and turns their position and normal a quarter turn
 about the move's axis. Stage detection compares each sticker with the center of its face, so it
 works in any orientation.

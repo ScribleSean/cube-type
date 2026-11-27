@@ -1,6 +1,6 @@
 # Word picker
 
-Each move has a pool of words (see [`src/words.js`](../src/words.js)). Every time the board fills
+Each move has three pools of words: calm, building and intense (see [`src/words.js`](../src/words.js)). Every time the board fills
 up, or an algorithm needs words, the picker chooses from those pools. The goal is what Monkeytype
 gives you: short, familiar words that are easy to type in a row.
 
@@ -19,16 +19,16 @@ row more likely.
 Each candidate word `w` gets a score from five features. Each feature is between 0 and 1, and higher is better:
 
 ```
-score(w) = 0.30·flow + 0.25·noSfb + 0.15·balance + 0.15·ease + 0.15·novelty
+score(w) = 0.55·flow + 0.20·noSfb + 0.10·balance + 0.075·ease + 0.075·novelty
 ```
 
 | Feature | Weight | Meaning |
 | --- | --- | --- |
-| flow | 0.30 | Share of letter pairs that switch hands. `pane` = 1 (p→a→n→e alternates), `were` = 0. |
-| noSfb | 0.25 | 1 minus the share of letter pairs typed by the same finger on different keys (e.g. `un`, `ed`). |
-| balance | 0.15 | Pulls recent typing back toward a 50/50 split between hands. If the last ~60 keys leaned left, right-heavy words score higher. |
-| ease | 0.15 | Short words read and type faster: 1 at 4 letters or fewer, falling to 0 at 9. |
-| novelty | 0.15 | 1 minus how recently this word was used (fading over 12 words), minus 0.3 × the share of its letters already shown on screen. |
+| flow | 0.55 | Share of letter pairs that switch hands. `pane` = 1 (p→a→n→e alternates), `were` = 0. |
+| noSfb | 0.20 | 1 minus the share of letter pairs typed by the same finger on different keys (e.g. `un`, `ed`). |
+| balance | 0.10 | Pulls recent typing back toward a 50/50 split between hands. If the last ~60 keys leaned left, right-heavy words score higher. |
+| ease | 0.075 | Short words read and type faster: 1 at 4 letters or fewer, falling to 0 at 9. |
+| novelty | 0.075 | 1 minus how recently this word was used (fading over 12 words), minus 0.3 × the share of its letters already shown on screen. |
 
 Fingers follow standard QWERTY touch typing: pinky `qaz`, ring `wsx`, middle `edc`, index `rfvtgb` on the
 left. On the right, index `yhnujm`, middle `ik`, ring `ol`, pinky `p`.
@@ -48,8 +48,8 @@ Two filters run first:
 
 - The picker skips words equal to either of the last two picks, like Monkeytype.
 - On the board, no word can be the start of another word on screen, so each word turns its layer
-  as soon as you type its last letter. Inside one algorithm a word isn't reused, except for doubles,
-  which repeat on purpose.
+  as soon as you type its last letter. Inside one algorithm a word isn't reused. The second half of
+  a double shows as ⏎ instead of a second word.
 
 ## Where it applies
 
@@ -57,8 +57,9 @@ Two filters run first:
 | --- | --- |
 | Board, cross | Calm words |
 | Board, F2L | Building words |
-| Board, last layer and algorithms | Building and intense words mixed |
-| Zen | Calm words throughout |
+| Board, last layer | Intense words |
+| Algorithm lines | Building and intense words mixed |
+| Zen and drill | Calm words throughout |
 
 ## Tuning
 
